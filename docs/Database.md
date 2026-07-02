@@ -1,14 +1,63 @@
 # Database Design
 
+Current provider: SQL Server.
+
+Default local database:
+
+```text
+Server=localhost;Database=VirtualTryOnDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
+```
+
+If using SQL authentication with `sa`, do not commit the password. Set the connection string locally before running migrations:
+
+```powershell
+$env:ConnectionStrings__DefaultConnection="Server=localhost;Database=VirtualTryOnDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;MultipleActiveResultSets=true"
+dotnet ef database update
+```
+
+Migration commands:
+
+```powershell
+cd backend
+dotnet ef migrations add MigrationName
+dotnet ef database update
+```
+
+Reset command:
+
+```powershell
+cd backend
+dotnet ef database drop --force
+dotnet ef database update
+```
+
 ## Users Table
 
 Fields:
 - Id: primary key
 - FullName
 - Email
+- NormalizedEmail
 - PasswordHash
-- Role: User or Admin
+- Gender
+- Role: Customer or Admin
+- IsEmailVerified
+- DateOfBirth
 - CreatedAt
+- UpdatedAt
+
+## RefreshTokens Table
+
+Fields:
+- Id: primary key
+- UserId: foreign key to Users
+- Token
+- ExpiresAt
+- CreatedAt
+- RevokedAt
+
+Relationship:
+One user can have many refresh tokens.
 
 ## UserImages Table
 

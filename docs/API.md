@@ -10,12 +10,26 @@ Request:
 {
   "fullName": "Alaa Awali",
   "email": "alaa@example.com",
-  "password": "123456"
+  "password": "StrongPass123!",
+  "confirmPassword": "StrongPass123!",
+  "gender": "female",
+  "dateOfBirth": "2000-01-01",
+  "acceptTerms": true
 }
 
 Response:
 {
-  "message": "Account created successfully"
+  "token": "jwt_token_here",
+  "refreshToken": "refresh_token_here",
+  "expiresAt": "2026-07-02T10:00:00Z",
+  "user": {
+    "id": "user_id",
+    "fullName": "Alaa Awali",
+    "email": "alaa@example.com",
+    "gender": "female",
+    "role": "Customer",
+    "isEmailVerified": false
+  }
 }
 
 POST /api/auth/login
@@ -25,29 +39,41 @@ Sign in user or admin.
 Request:
 {
   "email": "alaa@example.com",
-  "password": "123456"
+  "password": "StrongPass123!",
+  "rememberMe": true
 }
 
 Response:
 {
   "token": "jwt_token_here",
-  "role": "User"
+  "refreshToken": "refresh_token_here",
+  "expiresAt": "2026-07-02T10:00:00Z",
+  "user": {
+    "id": "user_id",
+    "fullName": "Alaa Awali",
+    "email": "alaa@example.com",
+    "gender": "female",
+    "role": "Customer"
+  }
 }
 
-POST /api/auth/change-password
+POST /api/auth/logout
 Purpose:
-Change user password.
+Revoke the current refresh token. Requires Bearer token.
 
 Request:
 {
-  "currentPassword": "oldPassword",
-  "newPassword": "newPassword"
+  "refreshToken": "refresh_token_here"
 }
 
 Response:
 {
-  "message": "Password changed successfully"
+  "message": "Signed out successfully."
 }
+
+GET /api/auth/me
+Purpose:
+Return the currently signed-in user. Requires Bearer token.
 
 ## User Profile APIs
 
