@@ -78,6 +78,27 @@ export const authService = {
     });
   },
 
+  googleLogin(payload) {
+    return request('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  forgotPassword(payload) {
+    return request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  resetPassword(payload) {
+    return request('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
   logout(token, refreshToken) {
     return request('/api/auth/logout', {
       method: 'POST',

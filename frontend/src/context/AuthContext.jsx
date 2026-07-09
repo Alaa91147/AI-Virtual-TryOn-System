@@ -113,6 +113,19 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const loginWithGoogle = useCallback(async (payload) => {
+    const rememberMe = Boolean(payload.rememberMe);
+    const data = await authService.googleLogin(payload);
+    persistSession(data, rememberMe);
+    setSession({
+      token: data.token,
+      refreshToken: data.refreshToken,
+      user: data.user,
+      storage: rememberMe ? localStorage : sessionStorage,
+    });
+    return data;
+  }, []);
+
   const signup = useCallback(async (payload) => {
     const data = await authService.register(payload);
     persistSession(data, false);
@@ -147,10 +160,20 @@ export function AuthProvider({ children }) {
       initializing,
       isAuthenticated: Boolean(session.token && session.user),
       login,
+      loginWithGoogle,
       signup,
       logout,
     }),
-    [initializing, login, logout, session.refreshToken, session.token, session.user, signup],
+    [
+      initializing,
+      login,
+      loginWithGoogle,
+      logout,
+      session.refreshToken,
+      session.token,
+      session.user,
+      signup,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

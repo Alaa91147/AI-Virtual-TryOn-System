@@ -14,6 +14,8 @@ public class User
 
     public string PasswordHash { get; set; } = string.Empty;
 
+    public string? GoogleSubject { get; set; }
+
     public string Gender { get; set; } = string.Empty;
 
     public string Role { get; set; } = UserRoles.Customer;
@@ -27,4 +29,6 @@ public class User
     public DateTimeOffset? UpdatedAt { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
 }

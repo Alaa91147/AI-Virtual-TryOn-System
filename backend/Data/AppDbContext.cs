@@ -9,6 +9,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -22,12 +24,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(user => user.Email).HasMaxLength(254).IsRequired();
             entity.Property(user => user.NormalizedEmail).HasMaxLength(254).IsRequired();
             entity.Property(user => user.PasswordHash).IsRequired();
+            entity.Property(user => user.GoogleSubject).HasMaxLength(128);
             entity.Property(user => user.Gender).HasMaxLength(20).IsRequired();
             entity.Property(user => user.Role).HasMaxLength(30).IsRequired();
             entity.Property(user => user.IsEmailVerified).HasDefaultValue(false);
             entity.Property(user => user.CreatedAt).IsRequired();
 
             entity.HasIndex(user => user.NormalizedEmail).IsUnique();
+            entity.HasIndex(user => user.GoogleSubject)
+                .IsUnique()
+                .HasFilter("[GoogleSubject] IS NOT NULL");
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
@@ -43,6 +49,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             entity.HasOne(token => token.User)
                 .WithMany(user => user.RefreshTokens)
+                .HasForeignKey(token => token.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("PasswordResetTokens");
+            entity.HasKey(token => token.Id);
+
+            entity.Property(token => token.TokenHash).HasMaxLength(128).IsRequired();
+            entity.Property(token => token.ExpiresAt).IsRequired();
+            entity.Property(token => token.CreatedAt).IsRequired();
+
+            entity.HasIndex(token => token.TokenHash).IsUnique();
+            entity.HasIndex(token => token.UserId);
+
+            entity.HasOne(token => token.User)
+                .WithMany(user => user.PasswordResetTokens)
                 .HasForeignKey(token => token.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

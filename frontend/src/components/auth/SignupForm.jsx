@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import PasswordInput from './PasswordInput.jsx';
 import PasswordStrength, { getPasswordStrength } from './PasswordStrength.jsx';
+import SocialAuthButtons from './SocialAuthButtons.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getErrorMessage } from '../../services/authService.js';
 
@@ -272,6 +273,13 @@ export default function SignupForm() {
         {submitting ? <span className="spinner small" /> : <UserPlus size={18} aria-hidden="true" />}
         <span>{submitting ? 'Creating account...' : 'Sign up'}</span>
       </button>
+
+      <div className="auth-divider">
+        <span>or</span>
+      </div>
+      <div className="social-auth">
+        <SocialAuthButtons action="Sign up" />
+      </div>
 
       <p className="switch-link">
         Already have an account? <Link to="/auth/login">Sign in</Link>

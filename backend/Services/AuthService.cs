@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -13,9 +15,14 @@ public class AuthService(
     AppDbContext dbContext,
     IPasswordHasher<User> passwordHasher,
     JwtTokenService jwtTokenService,
-    IOptions<JwtOptions> jwtOptions)
+    IOptions<JwtOptions> jwtOptions,
+    GoogleTokenVerifier googleTokenVerifier,
+    IEmailSender emailSender,
+    IOptions<AppUrlOptions> appUrlOptions)
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
+    private readonly AppUrlOptions _appUrlOptions = appUrlOptions.Value;
+    private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromMinutes(6);
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -99,6 +106,164 @@ public class AuthService(
         return response;
     }
 
+    public async Task<AuthResponse?> GoogleLoginAsync(
+        GoogleLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!googleTokenVerifier.IsConfigured)
+        {
+            throw new GoogleAuthNotConfiguredException();
+        }
+
+        var googleAccount = await googleTokenVerifier.VerifyAsync(request.Credential, cancellationToken);
+        if (googleAccount is null)
+        {
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var email = googleAccount.Email.Trim();
+        var normalizedEmail = NormalizeEmail(email);
+
+        var user = await dbContext.Users
+            .SingleOrDefaultAsync(account => account.GoogleSubject == googleAccount.Subject, cancellationToken);
+
+        if (user is null)
+        {
+            user = await dbContext.Users
+                .SingleOrDefaultAsync(account => account.NormalizedEmail == normalizedEmail, cancellationToken);
+
+            if (user is null)
+            {
+                user = new User
+                {
+                    FullName = GetGoogleDisplayName(googleAccount),
+                    Email = email,
+                    NormalizedEmail = normalizedEmail,
+                    GoogleSubject = googleAccount.Subject,
+                    Gender = GenderOptions.Other,
+                    Role = UserRoles.Customer,
+                    IsEmailVerified = true,
+                    CreatedAt = now
+                };
+
+                dbContext.Users.Add(user);
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(user.GoogleSubject) &&
+                    user.GoogleSubject != googleAccount.Subject)
+                {
+                    return null;
+                }
+
+                user.GoogleSubject = googleAccount.Subject;
+                user.IsEmailVerified = true;
+                user.UpdatedAt = now;
+            }
+        }
+        else if (!user.IsEmailVerified)
+        {
+            user.IsEmailVerified = true;
+            user.UpdatedAt = now;
+        }
+
+        var response = CreateAuthResponse(user);
+        var refreshTokenDays = request.RememberMe
+            ? _jwtOptions.RememberMeRefreshTokenDays
+            : _jwtOptions.RefreshTokenDays;
+
+        dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = user.Id,
+            Token = response.RefreshToken,
+            ExpiresAt = now.AddDays(refreshTokenDays)
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return response;
+    }
+
+    public async Task<string?> RequestPasswordResetAsync(
+        ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var normalizedEmail = NormalizeEmail(request.Email);
+
+        var user = await dbContext.Users
+            .SingleOrDefaultAsync(account => account.NormalizedEmail == normalizedEmail, cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var token = CreateSecureToken();
+        var tokenHash = HashToken(token);
+
+        dbContext.PasswordResetTokens.Add(new PasswordResetToken
+        {
+            UserId = user.Id,
+            TokenHash = tokenHash,
+            CreatedAt = now,
+            ExpiresAt = now.Add(PasswordResetTokenLifetime)
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var resetLink = CreatePasswordResetLink(token);
+        await emailSender.SendPasswordResetEmailAsync(user.Email, resetLink, cancellationToken);
+        return resetLink;
+    }
+
+    public async Task<bool> ResetPasswordAsync(
+        ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var tokenHash = HashToken(request.Token);
+        var now = DateTimeOffset.UtcNow;
+
+        var resetToken = await dbContext.PasswordResetTokens
+            .Include(token => token.User)
+            .SingleOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
+
+        if (resetToken is null ||
+            resetToken.UsedAt is not null ||
+            resetToken.ExpiresAt <= now)
+        {
+            return false;
+        }
+
+        resetToken.User.PasswordHash = passwordHasher.HashPassword(resetToken.User, request.Password);
+        resetToken.User.UpdatedAt = now;
+
+        var activeResetTokens = await dbContext.PasswordResetTokens
+            .Where(token =>
+                token.UserId == resetToken.UserId &&
+                token.UsedAt == null &&
+                token.ExpiresAt > now)
+            .ToListAsync(cancellationToken);
+
+        foreach (var activeResetToken in activeResetTokens)
+        {
+            activeResetToken.UsedAt = now;
+        }
+
+        var activeRefreshTokens = await dbContext.RefreshTokens
+            .Where(token => token.UserId == resetToken.UserId && token.RevokedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var refreshToken in activeRefreshTokens)
+        {
+            refreshToken.RevokedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<UserProfileResponse?> GetCurrentUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var userId = GetUserId(principal);
@@ -177,12 +342,50 @@ public class AuthService(
     {
         return email.Trim().ToUpperInvariant();
     }
+
+    private string CreatePasswordResetLink(string token)
+    {
+        var baseUrl = _appUrlOptions.FrontendBaseUrl.TrimEnd('/');
+        return $"{baseUrl}/auth/reset-password?token={Uri.EscapeDataString(token)}";
+    }
+
+    private static string CreateSecureToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
+    private static string HashToken(string token)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static string GetGoogleDisplayName(GoogleAccount googleAccount)
+    {
+        if (!string.IsNullOrWhiteSpace(googleAccount.Name))
+        {
+            return googleAccount.Name.Trim();
+        }
+
+        return googleAccount.Email.Trim();
+    }
 }
 
 public sealed class DuplicateEmailException : Exception
 {
     public DuplicateEmailException()
         : base("Email already exists.")
+    {
+    }
+}
+
+public sealed class GoogleAuthNotConfiguredException : Exception
+{
+    public GoogleAuthNotConfiguredException()
+        : base("Google sign-in is not configured.")
     {
     }
 }

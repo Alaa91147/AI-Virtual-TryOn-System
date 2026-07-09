@@ -48,6 +48,63 @@ public class AuthController(AuthService authService) : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("google")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponse>> GoogleLogin(
+        GoogleLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await authService.GoogleLoginAsync(request, cancellationToken);
+            if (response is null)
+            {
+                return Unauthorized(ApiError.Create(
+                    "Could not verify Google sign-in.",
+                    "Could not verify Google sign-in."));
+            }
+
+            return Ok(response);
+        }
+        catch (GoogleAuthNotConfiguredException)
+        {
+            return BadRequest(ApiError.Create(
+                "Google sign-in is not configured.",
+                "Set GoogleAuth:ClientId on the backend."));
+        }
+    }
+
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(typeof(ApiMessage), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ApiMessage>> ForgotPassword(
+        ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        await authService.RequestPasswordResetAsync(request, cancellationToken);
+        return Ok(new ApiMessage("If this email exists, we sent a reset link."));
+    }
+
+    [HttpPost("reset-password")]
+    [ProducesResponseType(typeof(ApiMessage), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ApiMessage>> ResetPassword(
+        ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var reset = await authService.ResetPasswordAsync(request, cancellationToken);
+        if (!reset)
+        {
+            return BadRequest(ApiError.Create(
+                "Invalid or expired reset link.",
+                "This reset link is invalid, expired, or already used."));
+        }
+
+        return Ok(new ApiMessage("Your password has been reset successfully."));
+    }
+
     [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(typeof(ApiMessage), StatusCodes.Status200OK)]
