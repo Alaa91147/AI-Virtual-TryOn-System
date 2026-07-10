@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # Frontend generated files
 frontend/node_modules/
@@ -11,3 +12,29 @@ frontend/dist/
 # Environment files
 .env
 *.env
+=======
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Frontend
+**/node_modules/
+frontend/dist/
+
+# Local databases and secrets
+backend/virtualtryon.db
+backend/virtualtryon.db-*
+backend/*.bak
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+>>>>>>> origin/main

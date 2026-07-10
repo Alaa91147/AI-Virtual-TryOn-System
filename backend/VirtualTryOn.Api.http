@@ -1,0 +1,43 @@
+@VirtualTryOn.Api_HostAddress = http://localhost:5113
+
+POST {{VirtualTryOn.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Demo Customer",
+  "email": "demo@example.com",
+  "password": "StrongPass123!",
+  "confirmPassword": "StrongPass123!",
+  "gender": "other",
+  "dateOfBirth": "2000-01-01",
+  "acceptTerms": true
+}
+
+###
+
+POST {{VirtualTryOn.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@example.com",
+  "password": "StrongPass123!",
+  "rememberMe": true
+}
+
+###
+
+GET {{VirtualTryOn.Api_HostAddress}}/api/auth/me
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+
+POST {{VirtualTryOn.Api_HostAddress}}/api/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
