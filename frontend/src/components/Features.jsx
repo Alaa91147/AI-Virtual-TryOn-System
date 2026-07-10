@@ -1,8 +1,24 @@
 const features = [
-  ["▣", "Realistic AI Try-On", "Advanced AI ensures realistic results so you can shop with complete confidence."],
-  ["▦", "Personal Wardrobe", "Save your favorite items, create outfits, and manage your wardrobe easily."],
-  ["⌁", "Size Recommendation", "Get accurate size suggestions based on your measurements and body shape."],
-  ["✧", "Outfit Inspiration", "Discover AI-curated outfit ideas tailored to your style and every occasion."],
+  [
+    "▣",
+    "Realistic AI Try-On",
+    "Advanced AI ensures realistic results so you can shop with complete confidence.",
+  ],
+  [
+    "▦",
+    "Personal Wardrobe",
+    "Save your favorite items, create outfits, and manage your wardrobe easily.",
+  ],
+  [
+    "⌁",
+    "Size Recommendation",
+    "Get accurate size suggestions based on your measurements and body shape.",
+  ],
+  [
+    "✧",
+    "Outfit Inspiration",
+    "Discover AI-curated outfit ideas tailored to your style and every occasion.",
+  ],
 ];
 
 function Features() {

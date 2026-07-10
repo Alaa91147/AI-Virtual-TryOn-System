@@ -1,8 +1,24 @@
 const steps = [
-  ["01", "Upload Your Photo", "Start with a clear photo so the AI can understand your body shape and style."],
-  ["02", "Choose Clothing", "Pick clothing items from your wardrobe or available outfit suggestions."],
-  ["03", "Generate Try-On", "Preview a realistic AI try-on result in seconds."],
-  ["04", "Save Your Look", "Save your favorite outfits and revisit them anytime."],
+  [
+    "01",
+    "Upload Your Photo",
+    "Start with a clear photo so the AI can understand your body shape and style.",
+  ],
+  [
+    "02",
+    "Choose Clothing",
+    "Pick clothing items from your wardrobe or available outfit suggestions.",
+  ],
+  [
+    "03",
+    "Generate Try-On",
+    "Preview a realistic AI try-on result in seconds.",
+  ],
+  [
+    "04",
+    "Save Your Look",
+    "Save your favorite outfits and revisit them anytime.",
+  ],
 ];
 
 function HowItWorks() {

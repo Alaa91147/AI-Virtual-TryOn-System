@@ -1,8 +1,11 @@
+import { Link } from "react-router-dom";
+
 function Navbar() {
   return (
     <header className="navbar">
       <a className="logo" href="#home">
         <span className="logo-icon">⌁</span>
+
         <span>
           <small>AI VIRTUAL</small>
           TRY-ON
@@ -10,7 +13,10 @@ function Navbar() {
       </a>
 
       <nav className="nav-links">
-        <a className="active" href="#home">Home</a>
+        <a className="active" href="#home">
+          Home
+        </a>
+
         <a href="#features">Features</a>
         <a href="#how">How It Works</a>
         <a href="#about">About Us</a>
@@ -18,9 +24,21 @@ function Navbar() {
       </nav>
 
       <div className="nav-actions">
-        <button className="theme-button" type="button">☼</button>
-        <a className="outline-btn" href="#login">Log In</a>
-        <a className="dark-btn" href="#signup">Sign Up</a>
+        <button
+          className="theme-button"
+          type="button"
+          aria-label="Change theme"
+        >
+          ☼
+        </button>
+
+        <Link className="outline-btn" to="/auth/login">
+          Log In
+        </Link>
+
+        <Link className="dark-btn" to="/auth/signup">
+          Sign Up
+        </Link>
       </div>
     </header>
   );

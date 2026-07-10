@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import heroBackground from "../assets/hero-bg.png";
 
 function Hero() {
@@ -13,14 +14,15 @@ function Hero() {
         </h1>
 
         <p>
-          Our AI technology lets you see how clothes look on you before you buy —
-          anytime, anywhere.
+          Our AI technology lets you see how clothes look on you before you buy
+          — anytime, anywhere.
         </p>
 
         <div className="hero-buttons">
-          <a className="dark-btn big" href="#signup">
+          <Link className="dark-btn big" to="/auth/signup">
             Get Started Free <span>→</span>
-          </a>
+          </Link>
+
           <a className="outline-btn big" href="#how">
             See How It Works <span>▷</span>
           </a>
@@ -31,10 +33,12 @@ function Hero() {
             <strong>♢ Secure & Private</strong>
             <small>Your data is safe</small>
           </div>
+
           <div>
             <strong>⚡ Realistic Results</strong>
             <small>AI powered try-on</small>
           </div>
+
           <div>
             <strong>▣ No Credit Card</strong>
             <small>Free to get started</small>
@@ -43,7 +47,10 @@ function Hero() {
       </div>
 
       <div className="hero-image-panel">
-        <img src={heroBackground} alt="AI virtual try-on fashion preview" />
+        <img
+          src={heroBackground}
+          alt="AI virtual try-on fashion preview"
+        />
       </div>
     </section>
   );

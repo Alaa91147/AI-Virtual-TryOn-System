@@ -7,9 +7,9 @@ function AboutUs() {
       </div>
 
       <p>
-        AI Virtual Try-On helps users preview outfits before buying or wearing them.
-        Our goal is to reduce uncertainty, improve styling decisions, and create a
-        smarter wardrobe experience powered by realistic AI previews.
+        AI Virtual Try-On helps users preview outfits before buying or wearing
+        them. Our goal is to reduce uncertainty, improve styling decisions, and
+        create a smarter wardrobe experience powered by realistic AI previews.
       </p>
     </section>
   );
