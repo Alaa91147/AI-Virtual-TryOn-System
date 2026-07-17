@@ -279,6 +279,47 @@ public class AuthService(
         return user is null ? null : ToProfileResponse(user);
     }
 
+    public async Task<UserProfileResponse?> UpdateCurrentUserAsync(
+        ClaimsPrincipal principal,
+        UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId(principal);
+        if (userId is null)
+        {
+            return null;
+        }
+
+        var user = await dbContext.Users
+            .SingleOrDefaultAsync(account => account.Id == userId.Value, cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        user.FullName = request.FullName.Trim();
+        user.Gender = request.Gender.Trim().ToLowerInvariant();
+        user.DateOfBirth = request.DateOfBirth;
+        user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
+        user.ProfilePhotoUrl = NormalizeOptional(request.ProfilePhotoUrl);
+        user.FullBodyPhotoUrl = NormalizeOptional(request.FullBodyPhotoUrl);
+        user.UpperBodyPhotoUrl = NormalizeOptional(request.UpperBodyPhotoUrl);
+        user.LowerBodyPhotoUrl = NormalizeOptional(request.LowerBodyPhotoUrl);
+        user.FacePhotoUrl = NormalizeOptional(request.FacePhotoUrl);
+        user.HeightCm = request.HeightCm;
+        user.WeightKg = request.WeightKg;
+        user.PreferredSize = NormalizeOptional(request.PreferredSize);
+        user.BodyShape = NormalizeOptional(request.BodyShape);
+        user.ShoeSize = NormalizeOptional(request.ShoeSize);
+        user.TopSize = NormalizeOptional(request.TopSize);
+        user.BottomSize = NormalizeOptional(request.BottomSize);
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToProfileResponse(user);
+    }
+
     public async Task LogoutAsync(ClaimsPrincipal principal, string? refreshToken, CancellationToken cancellationToken)
     {
         var userId = GetUserId(principal);
@@ -325,6 +366,19 @@ public class AuthService(
             user.FullName,
             user.Email,
             user.Gender,
+            user.PhoneNumber,
+            user.ProfilePhotoUrl,
+            user.FullBodyPhotoUrl,
+            user.UpperBodyPhotoUrl,
+            user.LowerBodyPhotoUrl,
+            user.FacePhotoUrl,
+            user.HeightCm,
+            user.WeightKg,
+            user.PreferredSize,
+            user.BodyShape,
+            user.ShoeSize,
+            user.TopSize,
+            user.BottomSize,
             user.Role,
             user.IsEmailVerified,
             user.DateOfBirth,
@@ -341,6 +395,11 @@ public class AuthService(
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToUpperInvariant();
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private string CreatePasswordResetLink(string token)

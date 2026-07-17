@@ -132,4 +132,24 @@ public class AuthController(AuthService authService) : ControllerBase
 
         return Ok(profile);
     }
+
+    [Authorize]
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<UserProfileResponse>> UpdateMe(
+        UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var profile = await authService.UpdateCurrentUserAsync(User, request, cancellationToken);
+        if (profile is null)
+        {
+            return Unauthorized(ApiError.Create(
+                "You need to sign in again.",
+                "You need to sign in again."));
+        }
+
+        return Ok(profile);
+    }
 }

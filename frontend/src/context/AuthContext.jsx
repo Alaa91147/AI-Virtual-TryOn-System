@@ -152,6 +152,18 @@ export function AuthProvider({ children }) {
     }
   }, [clearSession, session.refreshToken, session.token]);
 
+  const updateProfile = useCallback(async (payload) => {
+    const user = await authService.updateProfile(session.token, payload);
+    const nextSession = {
+      ...session,
+      user,
+    };
+
+    session.storage.setItem(USER_KEY, JSON.stringify(user));
+    setSession(nextSession);
+    return user;
+  }, [session]);
+
   const value = useMemo(
     () => ({
       token: session.token,
@@ -163,6 +175,7 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       signup,
       logout,
+      updateProfile,
     }),
     [
       initializing,
@@ -173,6 +186,7 @@ export function AuthProvider({ children }) {
       session.token,
       session.user,
       signup,
+      updateProfile,
     ],
   );
 

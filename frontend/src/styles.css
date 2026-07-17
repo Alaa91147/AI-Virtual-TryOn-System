@@ -190,6 +190,7 @@ a:hover {
 }
 
 .field input,
+.field select,
 .password-control {
   width: 100%;
   min-height: 44px;
@@ -203,12 +204,18 @@ a:hover {
     background 160ms ease;
 }
 
-.field input {
+.field input,
+.field select {
   padding: 0 12px;
   outline: none;
 }
 
+.field select {
+  appearance: none;
+}
+
 .field input:focus,
+.field select:focus,
 .password-control:focus-within {
   border-color: var(--focus);
   box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.11);
@@ -232,7 +239,8 @@ a:hover {
 }
 
 .has-error,
-.field input[aria-invalid="true"] {
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"] {
   border-color: var(--danger);
 }
 
@@ -663,10 +671,37 @@ a:hover {
   background: var(--fashion-primary);
   font-size: 1.35rem;
   font-weight: 900;
+  overflow: hidden;
+}
+
+.avatar-photo {
+  background: var(--surface-strong);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-card {
   padding: 20px;
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.compact-button {
+  min-height: 40px;
+  padding: 0 13px;
+}
+
+.profile-alert {
+  margin-top: 16px;
 }
 
 .detail-list {
@@ -708,6 +743,10 @@ a:hover {
   grid-column: 2;
 }
 
+.tryon-card {
+  grid-column: 1 / -1;
+}
+
 .fit-placeholder {
   display: flex;
   gap: 13px;
@@ -727,6 +766,138 @@ a:hover {
 
 .fit-placeholder span {
   color: var(--muted);
+}
+
+.profile-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-photo-field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-photo-field input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.photo-upload-button {
+  width: auto;
+  min-height: 42px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.profile-actions .secondary-button,
+.fit-save-button {
+  width: auto;
+  min-width: 148px;
+}
+
+.fit-form {
+  margin-top: 18px;
+}
+
+.fit-detail-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.tryon-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.tryon-photo-item {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 14px;
+  align-items: center;
+  min-height: 132px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf7;
+}
+
+.tryon-photo-preview {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed rgba(154, 123, 79, 0.42);
+  border-radius: 8px;
+  color: var(--fashion-primary-dark);
+  background: #f4efe6;
+}
+
+.tryon-photo-preview.has-photo {
+  border-style: solid;
+  background: var(--surface-strong);
+}
+
+.tryon-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tryon-photo-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.tryon-photo-copy strong {
+  color: var(--ink);
+}
+
+.tryon-photo-copy span {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.tryon-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tryon-photo-actions input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tryon-photo-actions .ghost-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 @keyframes spin {
@@ -769,6 +940,14 @@ a:hover {
   .fit-card {
     grid-column: auto;
   }
+
+  .fit-detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .tryon-photo-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -785,6 +964,43 @@ a:hover {
   }
 
   .profile-topbar .ghost-button {
+    width: 100%;
+  }
+
+  .profile-card-header,
+  .profile-actions,
+  .profile-photo-field {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-card-header .ghost-button,
+  .profile-actions .secondary-button,
+  .fit-save-button,
+  .photo-upload-button {
+    width: 100%;
+  }
+
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tryon-photo-item {
+    grid-template-columns: 1fr;
+  }
+
+  .tryon-photo-preview {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  .tryon-photo-actions {
+    flex-direction: column;
+  }
+
+  .tryon-photo-actions .ghost-button,
+  .tryon-photo-actions .photo-upload-button {
     width: 100%;
   }
 

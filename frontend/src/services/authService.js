@@ -113,4 +113,12 @@ export const authService = {
       token,
     });
   },
+
+  updateProfile(token, payload) {
+    return request('/api/auth/me', {
+      method: 'PUT',
+      token,
+      body: JSON.stringify(payload),
+    });
+  },
 };

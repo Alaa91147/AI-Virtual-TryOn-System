@@ -18,6 +18,32 @@ public class User
 
     public string Gender { get; set; } = string.Empty;
 
+    public string? PhoneNumber { get; set; }
+
+    public string? ProfilePhotoUrl { get; set; }
+
+    public string? FullBodyPhotoUrl { get; set; }
+
+    public string? UpperBodyPhotoUrl { get; set; }
+
+    public string? LowerBodyPhotoUrl { get; set; }
+
+    public string? FacePhotoUrl { get; set; }
+
+    public decimal? HeightCm { get; set; }
+
+    public decimal? WeightKg { get; set; }
+
+    public string? PreferredSize { get; set; }
+
+    public string? BodyShape { get; set; }
+
+    public string? ShoeSize { get; set; }
+
+    public string? TopSize { get; set; }
+
+    public string? BottomSize { get; set; }
+
     public string Role { get; set; } = UserRoles.Customer;
 
     public bool IsEmailVerified { get; set; }
