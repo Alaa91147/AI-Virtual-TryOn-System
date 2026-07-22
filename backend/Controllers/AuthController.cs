@@ -132,4 +132,37 @@ public class AuthController(AuthService authService) : ControllerBase
 
         return Ok(profile);
     }
+    [Authorize]
+[HttpPut("shopping-preference")]
+[ProducesResponseType(
+    typeof(UserProfileResponse),
+    StatusCodes.Status200OK)]
+[ProducesResponseType(
+    typeof(ApiError),
+    StatusCodes.Status400BadRequest)]
+[ProducesResponseType(
+    typeof(ApiError),
+    StatusCodes.Status401Unauthorized)]
+public async Task<ActionResult<UserProfileResponse>>
+    UpdateShoppingPreference(
+        UpdateShoppingPreferenceRequest request,
+        CancellationToken cancellationToken)
+{
+    var profile =
+        await authService
+            .UpdateShoppingPreferenceAsync(
+                User,
+                request.Preference,
+                cancellationToken);
+
+    if (profile is null)
+    {
+        return Unauthorized(
+            ApiError.Create(
+                "You need to sign in again.",
+                "You need to sign in again."));
+    }
+
+    return Ok(profile);
+}
 }

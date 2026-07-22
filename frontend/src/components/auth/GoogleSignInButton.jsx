@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '364869858301-qjbnaem9kjaom13rr5qvn52vhu1ivnjm.apps.googleusercontent.com';
+  const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
 let googleScriptPromise = null;
 

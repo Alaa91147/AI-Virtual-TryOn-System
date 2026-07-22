@@ -42,8 +42,15 @@ public class AuthService(
             FullName = request.FullName.Trim(),
             Email = email,
             NormalizedEmail = normalizedEmail,
-            Gender = request.Gender.Trim().ToLowerInvariant(),
-            Role = UserRoles.Customer,
+            Gender = request.Gender
+        .Trim()
+        .ToLowerInvariant(),
+
+        ShoppingPreference =
+         GetDefaultShoppingPreference(
+        request.Gender),
+
+Role = UserRoles.Customer,
             DateOfBirth = request.DateOfBirth,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -162,29 +169,32 @@ public class AuthService(
                 user.UpdatedAt = now;
             }
         }
-        else if (!user.IsEmailVerified)
-        {
-            user.IsEmailVerified = true;
-            user.UpdatedAt = now;
-        }
+       else if (!user.IsEmailVerified)
+{
+    user.IsEmailVerified = true;
+    user.UpdatedAt = now;
+}
 
-        var response = CreateAuthResponse(user);
-        var refreshTokenDays = request.RememberMe
-            ? _jwtOptions.RememberMeRefreshTokenDays
-            : _jwtOptions.RefreshTokenDays;
+var response = CreateAuthResponse(user);
 
-        dbContext.RefreshTokens.Add(new RefreshToken
-        {
-            UserId = user.Id,
-            Token = response.RefreshToken,
-            ExpiresAt = now.AddDays(refreshTokenDays)
-        });
+var refreshTokenDays = request.RememberMe
+    ? _jwtOptions.RememberMeRefreshTokenDays
+    : _jwtOptions.RefreshTokenDays;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+dbContext.RefreshTokens.Add(
+    new RefreshToken
+    {
+        UserId = user.Id,
+        Token = response.RefreshToken,
+        ExpiresAt =
+            now.AddDays(refreshTokenDays)
+    });
 
-        return response;
-    }
+await dbContext.SaveChangesAsync(
+    cancellationToken);
 
+return response;
+}
     public async Task<string?> RequestPasswordResetAsync(
         ForgotPasswordRequest request,
         CancellationToken cancellationToken)
@@ -306,6 +316,53 @@ public class AuthService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+public async Task<UserProfileResponse?>
+    UpdateShoppingPreferenceAsync(
+        ClaimsPrincipal principal,
+        string preference,
+        CancellationToken cancellationToken)
+{
+    var userId = GetUserId(principal);
+
+    if (userId is null)
+    {
+        return null;
+    }
+
+    var normalizedPreference =
+        preference.Trim().ToLowerInvariant();
+
+    if (!ShoppingPreferences.All.Contains(
+            normalizedPreference))
+    {
+        throw new ArgumentException(
+            "Invalid shopping preference.",
+            nameof(preference));
+    }
+
+    var user = await dbContext.Users
+        .SingleOrDefaultAsync(
+            account =>
+                account.Id == userId.Value,
+            cancellationToken);
+
+    if (user is null)
+    {
+        return null;
+    }
+
+    user.ShoppingPreference =
+        normalizedPreference;
+
+    user.UpdatedAt =
+        DateTimeOffset.UtcNow;
+
+    await dbContext.SaveChangesAsync(
+        cancellationToken);
+
+    return ToProfileResponse(user);
+}
+
     private AuthResponse CreateAuthResponse(User user)
     {
         var token = jwtTokenService.CreateAccessToken(user, out var expiresAt);
@@ -318,25 +375,66 @@ public class AuthService(
             ToProfileResponse(user));
     }
 
-    private static UserProfileResponse ToProfileResponse(User user)
-    {
-        return new UserProfileResponse(
-            user.Id,
-            user.FullName,
-            user.Email,
-            user.Gender,
-            user.Role,
-            user.IsEmailVerified,
-            user.DateOfBirth,
-            user.CreatedAt,
-            user.UpdatedAt);
-    }
+private static UserProfileResponse ToProfileResponse(
+    User user)
+{
+    return new UserProfileResponse(
+        user.Id,
+        user.FullName,
+        user.Email,
+        user.Gender,
+        GetEffectiveShoppingPreference(user),
+        user.Role,
+        user.IsEmailVerified,
+        user.DateOfBirth,
+        user.CreatedAt,
+        user.UpdatedAt);
+}
 
     private static Guid? GetUserId(ClaimsPrincipal principal)
     {
         var userIdValue = principal.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdValue, out var userId) ? userId : null;
     }
+
+private static string?
+    GetDefaultShoppingPreference(
+        string gender)
+{
+    var normalizedGender =
+        gender.Trim().ToLowerInvariant();
+
+    return normalizedGender switch
+    {
+        GenderOptions.Female =>
+            ShoppingPreferences.Women,
+
+        GenderOptions.Male =>
+            ShoppingPreferences.Men,
+
+        _ => null
+    };
+}
+
+private static string?
+    GetEffectiveShoppingPreference(
+        User user)
+{
+    var savedPreference =
+        user.ShoppingPreference?
+            .Trim()
+            .ToLowerInvariant();
+
+    if (savedPreference is not null &&
+        ShoppingPreferences.All.Contains(
+            savedPreference))
+    {
+        return savedPreference;
+    }
+
+    return GetDefaultShoppingPreference(
+        user.Gender);
+}
 
     private static string NormalizeEmail(string email)
     {

@@ -1,4 +1,13 @@
-import { CalendarDays, LogOut, Mail, Ruler, ShieldCheck, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarDays,
+  LogOut,
+  Mail,
+  Ruler,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 function formatDate(value) {
@@ -31,10 +40,21 @@ export default function ProfilePage() {
           <span className="auth-kicker">AI Virtual Try-On Shop</span>
           <h1>Profile</h1>
         </div>
-        <button className="ghost-button" type="button" onClick={logout}>
-          <LogOut size={18} aria-hidden="true" />
-          <span>Logout</span>
-        </button>
+        <div className="profile-actions">
+  <Link className="ghost-button" to="/shop">
+    <ArrowLeft size={18} aria-hidden="true" />
+    <span>Back to Shop</span>
+  </Link>
+
+  <button
+    className="ghost-button"
+    type="button"
+    onClick={logout}
+  >
+    <LogOut size={18} aria-hidden="true" />
+    <span>Logout</span>
+  </button>
+</div>
       </header>
 
       <section className="profile-grid">

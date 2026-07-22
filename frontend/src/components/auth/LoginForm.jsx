@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
-import GoogleSignInButton, { isGoogleSignInConfigured } from './GoogleSignInButton.jsx';
+import GoogleSignInButton, {
+  isGoogleSignInConfigured,
+} from './GoogleSignInButton.jsx';
 import PasswordInput from './PasswordInput.jsx';
 import SocialAuthButtons from './SocialAuthButtons.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -33,6 +35,7 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loginWithGoogle } = useAuth();
+
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -42,11 +45,14 @@ export default function LoginForm() {
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
   const visibleErrors = Object.fromEntries(
-    Object.entries(errors).filter(([key]) => touched[key] || submitting),
+    Object.entries(errors).filter(
+      ([key]) => touched[key] || submitting,
+    ),
   );
 
   function updateValue(event) {
     const { name, value, type, checked } = event.target;
+
     const nextValues = {
       ...values,
       [name]: type === 'checkbox' ? checked : value,
@@ -67,8 +73,12 @@ export default function LoginForm() {
     event.preventDefault();
 
     const nextErrors = validate(values);
+
     setErrors(nextErrors);
-    setTouched({ email: true, password: true });
+    setTouched({
+      email: true,
+      password: true,
+    });
     setFormError('');
     setSuccess('');
 
@@ -78,6 +88,7 @@ export default function LoginForm() {
 
     try {
       setSubmitting(true);
+
       await login({
         email: values.email.trim(),
         password: values.password,
@@ -85,10 +96,17 @@ export default function LoginForm() {
       });
 
       setSuccess('Signed in successfully.');
-      const redirectTo = location.state?.from?.pathname || '/profile';
-      window.setTimeout(() => navigate(redirectTo, { replace: true }), 350);
+
+      const redirectTo =
+        location.state?.from?.pathname || '/shop';
+
+      window.setTimeout(() => {
+        navigate(redirectTo, { replace: true });
+      }, 350);
     } catch (error) {
-      setFormError(getErrorMessage(error, 'Invalid email or password.'));
+      setFormError(
+        getErrorMessage(error, 'Invalid email or password.'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -111,24 +129,45 @@ export default function LoginForm() {
         });
 
         setSuccess('Signed in with Google.');
-        const redirectTo = location.state?.from?.pathname || '/profile';
-        window.setTimeout(() => navigate(redirectTo, { replace: true }), 350);
+
+        const redirectTo =
+          location.state?.from?.pathname || '/shop';
+
+        window.setTimeout(() => {
+          navigate(redirectTo, { replace: true });
+        }, 350);
       } catch (error) {
-        setFormError(getErrorMessage(error, 'Could not sign in with Google.'));
+        setFormError(
+          getErrorMessage(
+            error,
+            'Could not sign in with Google.',
+          ),
+        );
       } finally {
         setGoogleSubmitting(false);
       }
     },
-    [googleSubmitting, location.state?.from?.pathname, loginWithGoogle, navigate, values.rememberMe],
+    [
+      googleSubmitting,
+      location.state?.from?.pathname,
+      loginWithGoogle,
+      navigate,
+      values.rememberMe,
+    ],
   );
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit} noValidate>
+    <form
+      className="auth-form"
+      onSubmit={handleSubmit}
+      noValidate
+    >
       {formError ? (
         <div className="alert alert-error" role="alert">
           {formError}
         </div>
       ) : null}
+
       {success ? (
         <div className="alert alert-success" role="status">
           {success}
@@ -137,6 +176,7 @@ export default function LoginForm() {
 
       <div className="field">
         <label htmlFor="login-email">Email</label>
+
         <input
           id="login-email"
           name="email"
@@ -146,10 +186,18 @@ export default function LoginForm() {
           onBlur={handleBlur}
           autoComplete="email"
           aria-invalid={Boolean(visibleErrors.email)}
-          aria-describedby={visibleErrors.email ? 'login-email-error' : undefined}
+          aria-describedby={
+            visibleErrors.email
+              ? 'login-email-error'
+              : undefined
+          }
         />
+
         {visibleErrors.email ? (
-          <p className="field-error" id="login-email-error">
+          <p
+            className="field-error"
+            id="login-email-error"
+          >
             {visibleErrors.email}
           </p>
         ) : null}
@@ -174,32 +222,51 @@ export default function LoginForm() {
             checked={values.rememberMe}
             onChange={updateValue}
           />
+
           <span>Remember me</span>
         </label>
-        <Link to="/auth/forgot-password">Forgot password?</Link>
+
+        <Link to="/auth/forgot-password">
+          Forgot password?
+        </Link>
       </div>
 
-      <button className="primary-button" type="submit" disabled={submitting || googleSubmitting}>
-        {submitting ? <span className="spinner small" /> : <LogIn size={18} aria-hidden="true" />}
-        <span>{submitting ? 'Signing in...' : 'Sign in'}</span>
+      <button
+        className="primary-button"
+        type="submit"
+        disabled={submitting || googleSubmitting}
+      >
+        {submitting ? (
+          <span className="spinner small" />
+        ) : (
+          <LogIn size={18} aria-hidden="true" />
+        )}
+
+        <span>
+          {submitting ? 'Signing in...' : 'Sign in'}
+        </span>
       </button>
 
       <div className="auth-divider">
         <span>or</span>
       </div>
+
       <div className="social-auth">
         <SocialAuthButtons
           action="Sign in"
           googleButton={
             isGoogleSignInConfigured ? (
-              <GoogleSignInButton onCredential={handleGoogleCredential} />
+              <GoogleSignInButton
+                onCredential={handleGoogleCredential}
+              />
             ) : null
           }
         />
       </div>
 
       <p className="switch-link">
-        New here? <Link to="/auth/signup">Create an account</Link>
+        New here?{' '}
+        <Link to="/auth/signup">Create an account</Link>
       </p>
     </form>
   );

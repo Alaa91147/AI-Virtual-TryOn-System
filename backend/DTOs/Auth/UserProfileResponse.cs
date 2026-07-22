@@ -5,6 +5,7 @@ public sealed record UserProfileResponse(
     string FullName,
     string Email,
     string Gender,
+    string? ShoppingPreference,
     string Role,
     bool IsEmailVerified,
     DateOnly? DateOfBirth,

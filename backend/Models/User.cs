@@ -18,9 +18,12 @@ public class User
 
     public string Gender { get; set; } = string.Empty;
 
+    public string? ShoppingPreference { get; set; }
+
     public string Role { get; set; } = UserRoles.Customer;
 
     public bool IsEmailVerified { get; set; }
+
 
     public DateOnly? DateOfBirth { get; set; }
 
@@ -31,4 +34,15 @@ public class User
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
+
+    public ICollection<Favorite> Favorites { get; set; } = [];
+
+    public ICollection<RecentlyViewedProduct>
+    RecentlyViewedProducts { get; set; } = [];
+
+    public ICollection<CartItem> CartItems { get; set; } = [];
+
+    public ICollection<ProductReview> Reviews { get; set; } = [];
+
+    public ICollection<UserNotification> Notifications { get; set; } = [];
 }
