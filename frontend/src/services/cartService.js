@@ -8,16 +8,22 @@ export const cartService = {
     });
   },
 
-  add(token, productSizeId, quantity = 1) {
-    return request('/api/cart', {
-      method: 'POST',
-      token,
-      body: JSON.stringify({
-        productSizeId,
-        quantity,
-      }),
-    });
-  },
+ add(
+  token,
+  productSizeId,
+  productColorId,
+  quantity = 1,
+) {
+  return request('/api/cart', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({
+      productSizeId,
+      productColorId,
+      quantity,
+    }),
+  });
+},
 
   update(token, cartItemId, quantity) {
     return request(

@@ -139,7 +139,23 @@ export default function ProductReviews({
 
       applyResponse(response);
 
-      setMessage(
+window.dispatchEvent(
+  new Event('notification-updated'),
+);
+window.dispatchEvent(
+  new CustomEvent('app-notification', {
+    detail: {
+      title: data.currentUserReview
+        ? 'Review updated'
+        : 'Review published',
+      message:
+        `Your ${rating}-star review was saved successfully.`,
+      link: `/shop/products/${productId}`,
+    },
+  }),
+);
+
+setMessage(
         data.currentUserReview
           ? 'Your review was updated.'
           : 'Thank you for sharing your review.',

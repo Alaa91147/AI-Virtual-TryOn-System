@@ -101,6 +101,41 @@ public class NotificationService(
 
         return true;
     }
+public async Task CreateAsync(
+    Guid userId,
+    string title,
+    string message,
+    string type,
+    string? link,
+    CancellationToken cancellationToken)
+{
+    var userExists =
+        await dbContext.Users.AnyAsync(
+            user => user.Id == userId,
+            cancellationToken);
+
+    if (!userExists)
+    {
+        return;
+    }
+
+    dbContext.Notifications.Add(
+        new UserNotification
+        {
+            UserId = userId,
+            Title = title.Trim(),
+            Message = message.Trim(),
+            Type = type.Trim().ToLowerInvariant(),
+            Link = string.IsNullOrWhiteSpace(link)
+                ? null
+                : link.Trim(),
+            IsRead = false,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+    await dbContext.SaveChangesAsync(
+        cancellationToken);
+}
 
     public async Task<bool?> MarkAllReadAsync(
         ClaimsPrincipal principal,

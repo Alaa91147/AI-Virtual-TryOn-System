@@ -11,4 +11,6 @@ public class ProductColor
     public string HexCode { get; set; } = string.Empty;
 
     public Product Product { get; set; } = null!;
+
+    public ICollection<CartItem> CartItems { get; set; } = [];
 }

@@ -8,6 +8,8 @@ public class CartItem
 
     public Guid ProductSizeId { get; set; }
 
+    public Guid? ProductColorId { get; set; }
+
     public int Quantity { get; set; } = 1;
 
     public DateTimeOffset CreatedAt { get; set; } =
@@ -18,4 +20,6 @@ public class CartItem
     public User User { get; set; } = null!;
 
     public ProductSize ProductSize { get; set; } = null!;
+
+    public ProductColor? ProductColor { get; set; }
 }

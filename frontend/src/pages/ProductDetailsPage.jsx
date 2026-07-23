@@ -22,6 +22,8 @@ export default function ProductDetailsPage() {
   const { token } = useAuth();
 
   const [product, setProduct] = useState(null);
+  const [selectedColorId, setSelectedColorId] =
+    useState('');
   const [selectedSizeId, setSelectedSizeId] =
     useState('');
   const [quantity, setQuantity] = useState(1);
@@ -60,10 +62,14 @@ export default function ProductDetailsPage() {
         if (!cancelled) {
           setProduct(data);
 
+          const firstColor = data.colors?.[0];
+
           const firstAvailableSize =
             data.sizes?.find(
               (size) => size.stockQuantity > 0,
             );
+
+          setSelectedColorId(firstColor?.id || '');
 
           setSelectedSizeId(
             firstAvailableSize?.id || '',
@@ -136,12 +142,19 @@ export default function ProductDetailsPage() {
     }
   }
 
+  function chooseColor(colorId) {
+    setSelectedColorId(colorId);
+    setCartError('');
+    setCartMessage('');
+  }
+
   function chooseSize(size) {
     if (size.stockQuantity <= 0) {
       return;
     }
 
     setSelectedSizeId(size.id);
+
     setQuantity((current) =>
       Math.min(
         current,
@@ -149,51 +162,84 @@ export default function ProductDetailsPage() {
         20,
       ),
     );
+
     setCartError('');
     setCartMessage('');
   }
 
-  async function addToCart() {
-    if (!selectedSizeId) {
-      setCartError(
-        'Please select an available size.',
-      );
-      return;
-    }
-
-    try {
-      setAddingToCart(true);
-      setCartError('');
-      setCartMessage('');
-
-      const cart = await cartService.add(
-        token,
-        selectedSizeId,
-        quantity,
-      );
-
-      setCartMessage(
-        `${product.name} was added to your bag. ` +
-          `Your bag now contains ${cart.totalQuantity} ` +
-          `${cart.totalQuantity === 1 ? 'item' : 'items'}.`,
-      );
-
-      window.dispatchEvent(
-        new CustomEvent('cart-updated', {
-          detail: cart.totalQuantity,
-        }),
-      );
-    } catch (requestError) {
-      setCartError(
-        getErrorMessage(
-          requestError,
-          'Could not add this product to your bag.',
-        ),
-      );
-    } finally {
-      setAddingToCart(false);
-    }
+ async function addToCart() {
+  if (!selectedColorId) {
+    setCartError('Please select a color.');
+    return;
   }
+
+  if (!selectedSizeId) {
+    setCartError(
+      'Please select an available size.',
+    );
+    return;
+  }
+
+  try {
+    setAddingToCart(true);
+    setCartError('');
+    setCartMessage('');
+
+    const cart = await cartService.add(
+      token,
+      selectedSizeId,
+      selectedColorId,
+      quantity,
+    );
+
+    setCartMessage(
+      `${product.name} was added to your bag. ` +
+        `Your bag now contains ${cart.totalQuantity} ` +
+        `${cart.totalQuantity === 1 ? 'item' : 'items'}.`,
+    );
+
+    window.dispatchEvent(
+      new CustomEvent('cart-updated', {
+        detail: cart.totalQuantity,
+      }),
+    );
+
+    const chosenColor =
+      product.colors?.find(
+        (color) =>
+          color.id === selectedColorId,
+      );
+
+    const chosenSize =
+      product.sizes?.find(
+        (size) =>
+          size.id === selectedSizeId,
+      );
+
+    window.dispatchEvent(
+      new CustomEvent('app-notification', {
+        detail: {
+          title: 'Added to your bag',
+          message:
+            `${product.name}, ` +
+            `${chosenColor?.name || 'selected color'}, ` +
+            `size ${chosenSize?.name || 'selected size'}.`,
+          link: '/shop/cart',
+        },
+      }),
+    );
+  } catch (requestError) {
+    setCartError(
+      getErrorMessage(
+        requestError,
+        'Could not add this product to your bag.',
+      ),
+    );
+  } finally {
+    setAddingToCart(false);
+  }
+}
+
 
   if (loading) {
     return (
@@ -208,6 +254,7 @@ export default function ProductDetailsPage() {
     return (
       <main className="product-details-state">
         <h1>Product unavailable</h1>
+
         <p>
           {error ||
             'This product does not exist.'}
@@ -228,6 +275,10 @@ export default function ProductDetailsPage() {
 
   const selectedSize = availableSizes.find(
     (size) => size.id === selectedSizeId,
+  );
+
+  const selectedColor = product.colors?.find(
+    (color) => color.id === selectedColorId,
   );
 
   const maximumQuantity = Math.min(
@@ -294,6 +345,7 @@ export default function ProductDetailsPage() {
           <div className="product-details-rating">
             <Star size={17} fill="currentColor" />
             <strong>{product.rating}</strong>
+
             <span>
               ({product.reviewCount} reviews)
             </span>
@@ -308,18 +360,40 @@ export default function ProductDetailsPage() {
           </p>
 
           <div className="product-details-option">
-            <h2>Available colors</h2>
+            <div className="product-option-heading">
+              <h2>Select color</h2>
+
+              {selectedColor ? (
+                <span>{selectedColor.name}</span>
+              ) : null}
+            </div>
 
             <div className="product-details-colors">
               {product.colors?.map((color) => (
-                <span
+                <button
                   key={color.id}
+                  type="button"
+                  className={
+                    selectedColorId === color.id
+                      ? 'is-selected'
+                      : ''
+                  }
                   title={color.name}
-                  aria-label={color.name}
-                  style={{
-                    backgroundColor: color.hexCode,
-                  }}
-                />
+                  aria-label={`Select ${color.name}`}
+                  aria-pressed={
+                    selectedColorId === color.id
+                  }
+                  onClick={() =>
+                    chooseColor(color.id)
+                  }
+                >
+                  <span
+                    style={{
+                      backgroundColor:
+                        color.hexCode,
+                    }}
+                  />
+                </button>
               ))}
             </div>
           </div>
@@ -402,6 +476,7 @@ export default function ProductDetailsPage() {
               type="button"
               onClick={addToCart}
               disabled={
+                !selectedColorId ||
                 !selectedSizeId ||
                 addingToCart
               }
@@ -455,7 +530,7 @@ export default function ProductDetailsPage() {
             Start Virtual Try-On
           </button>
         </div>
-  </section>
+      </section>
 
       <ProductReviews
         productId={product.id}
@@ -469,5 +544,5 @@ export default function ProductDetailsPage() {
         }
       />
     </main>
-      );
+  );
 }

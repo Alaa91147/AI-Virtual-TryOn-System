@@ -434,7 +434,7 @@ private static void ConfigureFavorite(
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }
-    private static void ConfigureCartItem(
+   private static void ConfigureCartItem(
     ModelBuilder modelBuilder)
 {
     modelBuilder.Entity<CartItem>(entity =>
@@ -453,7 +453,8 @@ private static void ConfigureFavorite(
         entity.HasIndex(item => new
         {
             item.UserId,
-            item.ProductSizeId
+            item.ProductSizeId,
+            item.ProductColorId
         })
         .IsUnique();
 
@@ -466,8 +467,15 @@ private static void ConfigureFavorite(
 
         entity.HasOne(item => item.ProductSize)
             .WithMany(size => size.CartItems)
-            .HasForeignKey(item => item.ProductSizeId)
+            .HasForeignKey(item =>
+                item.ProductSizeId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(item => item.ProductColor)
+            .WithMany(color => color.CartItems)
+            .HasForeignKey(item =>
+                item.ProductColorId)
+            .OnDelete(DeleteBehavior.Restrict);
     });
 }
 

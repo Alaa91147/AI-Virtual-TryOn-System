@@ -263,9 +263,28 @@ export default function CartPage() {
                         </Link>
                       </h2>
 
-                      <span>
-                        Size: <strong>{item.size}</strong>
-                      </span>
+                      <div className="cart-item-variants">
+  <span>
+    Size: <strong>{item.size}</strong>
+  </span>
+
+  {item.colorName ? (
+    <span>
+      Color:
+
+      <i
+        className="cart-color-swatch"
+        style={{
+          backgroundColor:
+            item.colorHexCode || '#ffffff',
+        }}
+        aria-hidden="true"
+      />
+
+      <strong>{item.colorName}</strong>
+    </span>
+  ) : null}
+</div>
                     </div>
 
                     <strong>

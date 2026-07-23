@@ -19,7 +19,8 @@ public sealed record ReviewMutationResult(
     ProductReviewsResponse? Reviews = null);
 
 public class ProductReviewService(
-    AppDbContext dbContext)
+    AppDbContext dbContext,
+    NotificationService notificationService)
 {
     public async Task<ProductReviewsResponse?>
         GetAsync(
@@ -110,10 +111,18 @@ public class ProductReviewService(
             cancellationToken);
 
         await RecalculateProductRatingAsync(
-            productId,
-            cancellationToken);
+    productId,
+    cancellationToken);
 
-        return new ReviewMutationResult(
+await notificationService.CreateAsync(
+    userId.Value,
+    "Review published",
+    $"Your {request.Rating}-star review was published successfully.",
+    "review",
+    $"/shop/products/{productId}",
+    cancellationToken);
+
+return new ReviewMutationResult(
             ReviewMutationStatus.Success,
             await BuildResponseAsync(
                 productId,
@@ -163,10 +172,18 @@ public class ProductReviewService(
             cancellationToken);
 
         await RecalculateProductRatingAsync(
-            productId,
-            cancellationToken);
+    productId,
+    cancellationToken);
 
-        return new ReviewMutationResult(
+await notificationService.CreateAsync(
+    userId.Value,
+    "Review updated",
+    $"Your review was updated to {request.Rating} stars.",
+    "review",
+    $"/shop/products/{productId}",
+    cancellationToken);
+
+return new ReviewMutationResult(
             ReviewMutationStatus.Success,
             await BuildResponseAsync(
                 productId,

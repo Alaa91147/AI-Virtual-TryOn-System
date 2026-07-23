@@ -4625,3 +4625,521 @@ a:hover {
     display: none;
   }
 }
+.product-option-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.product-option-heading h2 {
+  margin: 0;
+}
+
+.product-option-heading span {
+  color: #a87832;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.product-details-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.product-details-colors button {
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  border: 1px solid #d8d0c5;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.product-details-colors button > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
+}
+
+.product-details-colors button:hover {
+  border-color: #a87832;
+  transform: translateY(-1px);
+}
+
+.product-details-colors button.is-selected {
+  border-color: #111;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3px #111;
+}
+.cart-item-variants {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1.2rem;
+  margin-top: 0.65rem;
+}
+
+.cart-item-variants > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #6f685e;
+  font-size: 0.8rem;
+}
+
+.cart-item-variants strong {
+  color: #171512;
+  font-weight: 700;
+}
+
+.cart-color-swatch {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  border: 1px solid #cfc5b8;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff;
+}
+.app-notification-toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  width: min(390px, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid #ded4c7;
+  border-left: 4px solid #b58236;
+  border-radius: 10px;
+  background: #fffdf9;
+  color: #171512;
+  box-shadow:
+    0 18px 55px rgba(48, 37, 25, 0.18),
+    0 4px 14px rgba(48, 37, 25, 0.08);
+  cursor: pointer;
+  animation: appToastIn 260ms ease-out;
+}
+
+.app-toast-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f1e6d6;
+  color: #a46f25;
+}
+
+.app-toast-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.app-toast-copy strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+.app-toast-copy > span {
+  overflow: hidden;
+  color: #6f685e;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+}
+
+.app-notification-toast > button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #71695f;
+  cursor: pointer;
+}
+
+.app-notification-toast > button:hover {
+  background: #eee7dd;
+  color: #111;
+}
+
+@keyframes appToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px)
+      translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0)
+      translateX(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .app-notification-toast {
+    top: 0.8rem;
+    right: 0.8rem;
+    left: 0.8rem;
+    width: auto;
+  }
+}
+/* Final SHEIN-inspired shop layout.
+   Existing beige, black, white and gold palette preserved. */
+
+.shop-hero {
+  min-height: 560px;
+  height: min(620px, 48vw);
+  background: #f4ecdf;
+}
+
+.shop-hero > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+  filter: none;
+  transform: translateZ(0);
+}
+
+.shop-hero-shade {
+  background: linear-gradient(
+    90deg,
+    rgba(248, 243, 235, 0.98) 0%,
+    rgba(248, 243, 235, 0.9) 22%,
+    rgba(248, 243, 235, 0.36) 42%,
+    rgba(248, 243, 235, 0) 61%
+  );
+}
+
+.shop-hero-copy {
+  width: min(42%, 680px);
+  padding:
+    clamp(85px, 8vw, 125px)
+    0
+    70px
+    clamp(40px, 5vw, 90px);
+}
+
+.shop-hero-copy h1 {
+  margin: 16px 0 20px;
+  font-size: clamp(54px, 4.6vw, 82px);
+  line-height: 0.96;
+}
+
+.shop-hero-copy p {
+  max-width: 480px;
+  margin-bottom: 30px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.shop-hero-copy button {
+  min-height: 48px;
+  padding: 0 28px;
+}
+
+/* Keep every category on one clean horizontal row. */
+
+.shop-categories {
+  display: flex;
+  max-width: 100%;
+  gap: clamp(20px, 3vw, 46px);
+  padding: 28px clamp(30px, 5vw, 90px);
+  overflow-x: auto;
+  justify-content: flex-start;
+  scrollbar-width: thin;
+  scrollbar-color: #b4874a transparent;
+}
+
+.shop-categories button {
+  flex: 0 0 94px;
+}
+
+.shop-categories button > span {
+  width: 82px;
+  height: 82px;
+}
+
+.shop-categories strong {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* SHEIN-style vertical product cards. */
+
+.shop-recommendations {
+  padding:
+    42px
+    clamp(30px, 4vw, 72px)
+    48px;
+}
+
+.shop-section-heading {
+  margin-bottom: 24px;
+}
+
+.shop-section-heading h2 {
+  font-size: clamp(32px, 2.5vw, 44px);
+}
+
+.shop-product-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    5,
+    minmax(0, 1fr)
+  );
+  gap: 24px 16px;
+}
+
+.shop-product-card {
+  display: flex;
+  height: auto;
+  min-height: 0;
+  flex-direction: column;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.shop-product-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.shop-product-media {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: #f4efe8;
+}
+
+.shop-product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.shop-product-card:hover
+.shop-product-media img {
+  transform: scale(1.025);
+}
+
+.shop-product-info {
+  display: flex;
+  height: auto;
+  min-height: 180px;
+  padding: 13px 2px 4px;
+  flex-direction: column;
+}
+
+.shop-product-heading h3 {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.shop-product-heading > strong {
+  font-size: 14px;
+}
+
+.shop-product-category {
+  margin-bottom: 5px;
+  font-size: 9px;
+}
+
+.shop-rating {
+  margin-top: 9px;
+  font-size: 11px;
+}
+
+.shop-product-options {
+  margin: 12px 0;
+}
+
+.shop-swatches span {
+  width: 15px;
+  height: 15px;
+}
+
+.shop-size {
+  font-size: 10px;
+}
+
+.shop-try-button {
+  min-height: 40px;
+  margin-top: auto;
+  border-color: #171717;
+  font-size: 12px;
+}
+
+.shop-recently-viewed {
+  padding:
+    30px
+    clamp(30px, 4vw, 72px)
+    45px;
+}
+
+@media (max-width: 1500px) {
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      4,
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@media (max-width: 1100px) {
+  .shop-hero {
+    min-height: 510px;
+    height: 510px;
+  }
+
+  .shop-hero-copy {
+    width: 52%;
+  }
+
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      3,
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@media (max-width: 760px) {
+  .shop-hero {
+    min-height: 540px;
+    height: 540px;
+  }
+
+  .shop-hero > img {
+    object-position: 62% center;
+  }
+
+  .shop-hero-copy {
+    width: 88%;
+    padding:
+      100px
+      20px
+      55px;
+  }
+
+  .shop-hero-copy h1 {
+    font-size: 45px;
+  }
+
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      2,
+      minmax(0, 1fr)
+    );
+    gap: 20px 10px;
+  }
+
+  .shop-product-info {
+    min-height: 175px;
+  }
+
+  .shop-categories {
+    padding: 22px 16px;
+  }
+}
+/* Slightly smaller SHEIN-style product cards */
+
+.shop-product-grid {
+  grid-template-columns: repeat(
+    6,
+    minmax(0, 1fr)
+  );
+  gap: 22px 14px;
+}
+
+.shop-product-media {
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 4 / 5;
+}
+
+.shop-product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.shop-product-info {
+  min-height: 170px;
+  padding: 12px 2px 4px;
+}
+
+@media (max-width: 1650px) {
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      5,
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@media (max-width: 1300px) {
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      4,
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@media (max-width: 1000px) {
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      3,
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@media (max-width: 700px) {
+  .shop-product-grid {
+    grid-template-columns: repeat(
+      2,
+      minmax(0, 1fr)
+    );
+  }
+}
+/* Keep the models' heads visible in the hero */
+
+.shop-hero > img {
+  object-fit: cover;
+  object-position: center top;
+}
+
+@media (max-width: 1100px) {
+  .shop-hero > img {
+    object-position: 62% top;
+  }
+}

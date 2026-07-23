@@ -19,7 +19,8 @@ public sealed record CartMutationResult(
     CartResponse? Cart = null);
 
 public class CartService(
-    AppDbContext dbContext)
+    AppDbContext dbContext,
+    NotificationService notificationService)
 {
     public async Task<CartResponse?> GetAsync(
         ClaimsPrincipal principal,
@@ -72,12 +73,30 @@ public class CartService(
                 CartMutationStatus.NotFound);
         }
 
+        var productColor = await dbContext.ProductColors
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                color =>
+                    color.Id == request.ProductColorId &&
+                    color.ProductId == productSize.ProductId,
+                cancellationToken);
+
+        // The selected color must exist and belong
+        // to the same product as the selected size.
+        if (productColor is null)
+        {
+            return new CartMutationResult(
+                CartMutationStatus.NotFound);
+        }
+
         var cartItem = await dbContext.CartItems
             .SingleOrDefaultAsync(
                 item =>
                     item.UserId == userId.Value &&
                     item.ProductSizeId ==
-                        request.ProductSizeId,
+                        request.ProductSizeId &&
+                    item.ProductColorId ==
+                        request.ProductColorId,
                 cancellationToken);
 
         var newQuantity =
@@ -98,22 +117,34 @@ public class CartService(
                     UserId = userId.Value,
                     ProductSizeId =
                         request.ProductSizeId,
+                    ProductColorId =
+                        request.ProductColorId,
                     Quantity = request.Quantity,
                     CreatedAt =
                         DateTimeOffset.UtcNow
                 });
         }
         else
-        {
-            cartItem.Quantity = newQuantity;
-            cartItem.UpdatedAt =
-                DateTimeOffset.UtcNow;
-        }
+{
+    cartItem.Quantity = newQuantity;
+    cartItem.UpdatedAt =
+        DateTimeOffset.UtcNow;
+}
 
-        await dbContext.SaveChangesAsync(
-            cancellationToken);
+await dbContext.SaveChangesAsync(
+    cancellationToken);
 
-        return new CartMutationResult(
+await notificationService.CreateAsync(
+    userId.Value,
+    "Added to your bag",
+    $"{productSize.Product.Name} in " +
+    $"{productColor.Name}, size " +
+    $"{productSize.Name}, was added to your bag.",
+    "cart",
+    "/cart",
+    cancellationToken);
+
+return new CartMutationResult(
             CartMutationStatus.Success,
             await BuildCartAsync(
                 userId.Value,
@@ -256,18 +287,26 @@ public class CartService(
                 item.UserId == userId &&
                 item.ProductSize.Product.IsActive &&
                 item.ProductSize.Product.Category.IsActive)
-            .OrderByDescending(item => item.CreatedAt)
+            .OrderByDescending(item =>
+                item.CreatedAt)
             .Select(item =>
                 new CartItemResponse(
                     item.Id,
                     item.ProductSize.Product.Id,
                     item.ProductSize.Id,
+                    item.ProductColorId,
                     item.ProductSize.Product.Name,
                     item.ProductSize.Product.Slug,
                     item.ProductSize.Product.Category.Name,
                     item.ProductSize.Product.Category.Audience,
                     item.ProductSize.Product.ImageUrl,
                     item.ProductSize.Name,
+                    item.ProductColor != null
+                        ? item.ProductColor.Name
+                        : null,
+                    item.ProductColor != null
+                        ? item.ProductColor.HexCode
+                        : null,
                     item.ProductSize.Product.Price,
                     item.Quantity,
                     item.ProductSize.StockQuantity,

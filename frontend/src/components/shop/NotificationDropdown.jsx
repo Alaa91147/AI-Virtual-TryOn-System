@@ -28,43 +28,77 @@ export default function NotificationDropdown({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
+ useEffect(() => {
+  let cancelled = false;
 
-    async function loadNotifications() {
-      if (!token) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError('');
-
-        const response =
-          await notificationService.get(token);
-
-        if (!cancelled) {
-          setData(response);
-        }
-      } catch {
-        if (!cancelled) {
-          setError(
-            'Could not load notifications.',
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+  async function loadNotifications(
+    showLoading = true,
+  ) {
+    if (!token) {
+      setData(emptyData);
+      setLoading(false);
+      return;
     }
 
-    loadNotifications();
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      setError('');
+
+      const response =
+        await notificationService.get(token);
+
+      if (!cancelled) {
+        setData(response);
+      }
+    } catch {
+      if (!cancelled) {
+        setError(
+          'Could not load notifications.',
+        );
+      }
+    } finally {
+      if (!cancelled && showLoading) {
+        setLoading(false);
+      }
+    }
+  }
+
+  function refreshNotifications() {
+    loadNotifications(false);
+  }
+
+  loadNotifications();
+
+  window.addEventListener(
+    'notification-updated',
+    refreshNotifications,
+  );
+
+  // ProductDetailsPage already sends this event
+  // immediately after adding to the cart.
+  window.addEventListener(
+    'cart-updated',
+    refreshNotifications,
+  );
+
+  return () => {
+    cancelled = true;
+
+    window.removeEventListener(
+      'notification-updated',
+      refreshNotifications,
+    );
+
+    window.removeEventListener(
+      'cart-updated',
+      refreshNotifications,
+    );
+  };
+}, [token]);
+
 
   useEffect(() => {
     function handleOutsideClick(event) {
