@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using VirtualTryOn.Api.Constants;
 using VirtualTryOn.Api.Models;
 
 namespace VirtualTryOn.Api.Services;
@@ -15,15 +16,16 @@ public class JwtTokenService(IOptions<JwtOptions> jwtOptions)
     public string CreateAccessToken(User user, out DateTimeOffset expiresAt)
     {
         expiresAt = DateTimeOffset.UtcNow.AddMinutes(_jwtOptions.AccessTokenMinutes);
+        var profile = user.Profile;
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.FullName),
+            new(ClaimTypes.Name, profile?.FullName ?? user.Email),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, user.Role),
-            new("gender", user.Gender)
+            new("gender", profile?.Gender ?? GenderOptions.Other)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Secret));

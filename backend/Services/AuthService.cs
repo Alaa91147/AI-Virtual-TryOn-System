@@ -39,13 +39,18 @@ public class AuthService(
 
         var user = new User
         {
-            FullName = request.FullName.Trim(),
             Email = email,
             NormalizedEmail = normalizedEmail,
-            Gender = request.Gender.Trim().ToLowerInvariant(),
             Role = UserRoles.Customer,
-            DateOfBirth = request.DateOfBirth,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            Profile = new UserProfile
+            {
+                FullName = request.FullName.Trim(),
+                Gender = request.Gender.Trim().ToLowerInvariant(),
+                DateOfBirth = request.DateOfBirth
+            },
+            FitProfile = new UserFitProfile(),
+            TryOnPhotos = new UserTryOnPhotos()
         };
 
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
@@ -69,7 +74,7 @@ public class AuthService(
     {
         var normalizedEmail = NormalizeEmail(request.Email);
 
-        var user = await dbContext.Users
+        var user = await UsersWithProfileSections()
             .SingleOrDefaultAsync(account => account.NormalizedEmail == normalizedEmail, cancellationToken);
 
         if (user is null)
@@ -125,26 +130,31 @@ public class AuthService(
         var email = googleAccount.Email.Trim();
         var normalizedEmail = NormalizeEmail(email);
 
-        var user = await dbContext.Users
+        var user = await UsersWithProfileSections()
             .SingleOrDefaultAsync(account => account.GoogleSubject == googleAccount.Subject, cancellationToken);
 
         if (user is null)
         {
-            user = await dbContext.Users
+            user = await UsersWithProfileSections()
                 .SingleOrDefaultAsync(account => account.NormalizedEmail == normalizedEmail, cancellationToken);
 
             if (user is null)
             {
                 user = new User
                 {
-                    FullName = GetGoogleDisplayName(googleAccount),
                     Email = email,
                     NormalizedEmail = normalizedEmail,
                     GoogleSubject = googleAccount.Subject,
-                    Gender = GenderOptions.Other,
                     Role = UserRoles.Customer,
                     IsEmailVerified = true,
-                    CreatedAt = now
+                    CreatedAt = now,
+                    Profile = new UserProfile
+                    {
+                        FullName = GetGoogleDisplayName(googleAccount),
+                        Gender = GenderOptions.Other
+                    },
+                    FitProfile = new UserFitProfile(),
+                    TryOnPhotos = new UserTryOnPhotos()
                 };
 
                 dbContext.Users.Add(user);
@@ -160,6 +170,7 @@ public class AuthService(
                 user.GoogleSubject = googleAccount.Subject;
                 user.IsEmailVerified = true;
                 user.UpdatedAt = now;
+                EnsureProfile(user);
             }
         }
         else if (!user.IsEmailVerified)
@@ -272,11 +283,65 @@ public class AuthService(
             return null;
         }
 
-        var user = await dbContext.Users
+        var user = await UsersWithProfileSections()
             .AsNoTracking()
             .SingleOrDefaultAsync(account => account.Id == userId.Value, cancellationToken);
 
         return user is null ? null : ToProfileResponse(user);
+    }
+
+    public async Task<UserProfileResponse?> UpdateCurrentUserAsync(
+        ClaimsPrincipal principal,
+        UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId(principal);
+        if (userId is null)
+        {
+            return null;
+        }
+
+        var user = await UsersWithProfileSections()
+            .SingleOrDefaultAsync(account => account.Id == userId.Value, cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        var profile = EnsureProfile(user);
+        var address = EnsureDeliveryAddress(user);
+        var photos = EnsureTryOnPhotos(user);
+        var fitProfile = EnsureFitProfile(user);
+
+        profile.FullName = request.FullName.Trim();
+        profile.Gender = request.Gender.Trim().ToLowerInvariant();
+        profile.DateOfBirth = request.DateOfBirth;
+        profile.PhoneNumber = NormalizeOptional(request.PhoneNumber);
+        profile.ProfilePhotoUrl = NormalizeOptional(request.ProfilePhotoUrl);
+
+        address.Country = NormalizeOptional(request.DeliveryCountry);
+        address.City = NormalizeOptional(request.DeliveryCity);
+        address.Street = NormalizeOptional(request.DeliveryStreet);
+        address.Building = NormalizeOptional(request.DeliveryBuilding);
+        address.PhoneNumber = NormalizeOptional(request.DeliveryPhoneNumber);
+
+        photos.FullBodyPhotoUrl = NormalizeOptional(request.FullBodyPhotoUrl);
+        photos.UpperBodyPhotoUrl = NormalizeOptional(request.UpperBodyPhotoUrl);
+        photos.LowerBodyPhotoUrl = NormalizeOptional(request.LowerBodyPhotoUrl);
+        photos.FacePhotoUrl = NormalizeOptional(request.FacePhotoUrl);
+
+        fitProfile.HeightCm = request.HeightCm;
+        fitProfile.WeightKg = request.WeightKg;
+        fitProfile.PreferredSize = NormalizeOptional(request.PreferredSize);
+        fitProfile.BodyShape = NormalizeOptional(request.BodyShape);
+        fitProfile.ShoeSize = NormalizeOptional(request.ShoeSize);
+        fitProfile.TopSize = NormalizeOptional(request.TopSize);
+        fitProfile.BottomSize = NormalizeOptional(request.BottomSize);
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToProfileResponse(user);
     }
 
     public async Task LogoutAsync(ClaimsPrincipal principal, string? refreshToken, CancellationToken cancellationToken)
@@ -308,6 +373,8 @@ public class AuthService(
 
     private AuthResponse CreateAuthResponse(User user)
     {
+        EnsureProfile(user);
+
         var token = jwtTokenService.CreateAccessToken(user, out var expiresAt);
         var refreshToken = jwtTokenService.CreateRefreshToken();
 
@@ -320,16 +387,93 @@ public class AuthService(
 
     private static UserProfileResponse ToProfileResponse(User user)
     {
+        var profile = user.Profile;
+        var address = user.DeliveryAddress;
+        var photos = user.TryOnPhotos;
+        var fitProfile = user.FitProfile;
+
         return new UserProfileResponse(
             user.Id,
-            user.FullName,
+            profile?.FullName ?? user.Email,
             user.Email,
-            user.Gender,
+            profile?.Gender ?? GenderOptions.Other,
+            profile?.PhoneNumber,
+            address?.Country,
+            address?.City,
+            address?.Street,
+            address?.Building,
+            address?.PhoneNumber,
+            profile?.ProfilePhotoUrl,
+            photos?.FullBodyPhotoUrl,
+            photos?.UpperBodyPhotoUrl,
+            photos?.LowerBodyPhotoUrl,
+            photos?.FacePhotoUrl,
+            fitProfile?.HeightCm,
+            fitProfile?.WeightKg,
+            fitProfile?.PreferredSize,
+            fitProfile?.BodyShape,
+            fitProfile?.ShoeSize,
+            fitProfile?.TopSize,
+            fitProfile?.BottomSize,
             user.Role,
             user.IsEmailVerified,
-            user.DateOfBirth,
+            profile?.DateOfBirth,
             user.CreatedAt,
             user.UpdatedAt);
+    }
+
+    private IQueryable<User> UsersWithProfileSections()
+    {
+        return dbContext.Users
+            .Include(user => user.Profile)
+            .Include(user => user.FitProfile)
+            .Include(user => user.TryOnPhotos)
+            .Include(user => user.DeliveryAddress);
+    }
+
+    private static UserProfile EnsureProfile(User user)
+    {
+        if (user.Profile is null)
+        {
+            user.Profile = new UserProfile
+            {
+                UserId = user.Id,
+                FullName = user.Email,
+                Gender = GenderOptions.Other
+            };
+        }
+
+        return user.Profile;
+    }
+
+    private static UserFitProfile EnsureFitProfile(User user)
+    {
+        user.FitProfile ??= new UserFitProfile
+        {
+            UserId = user.Id
+        };
+
+        return user.FitProfile;
+    }
+
+    private static UserTryOnPhotos EnsureTryOnPhotos(User user)
+    {
+        user.TryOnPhotos ??= new UserTryOnPhotos
+        {
+            UserId = user.Id
+        };
+
+        return user.TryOnPhotos;
+    }
+
+    private static UserDeliveryAddress EnsureDeliveryAddress(User user)
+    {
+        user.DeliveryAddress ??= new UserDeliveryAddress
+        {
+            UserId = user.Id
+        };
+
+        return user.DeliveryAddress;
     }
 
     private static Guid? GetUserId(ClaimsPrincipal principal)
@@ -341,6 +485,11 @@ public class AuthService(
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToUpperInvariant();
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private string CreatePasswordResetLink(string token)

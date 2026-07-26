@@ -19,6 +19,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [resetLink, setResetLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event) {
@@ -27,6 +28,7 @@ export default function ForgotPasswordPage() {
     const nextError = validateEmail(email);
     setError(nextError);
     setSuccess('');
+    setResetLink('');
 
     if (nextError) {
       return;
@@ -34,7 +36,8 @@ export default function ForgotPasswordPage() {
 
     try {
       setSubmitting(true);
-      await authService.forgotPassword({ email: email.trim() });
+      const response = await authService.forgotPassword({ email: email.trim() });
+      setResetLink(response?.resetLink || '');
     } catch (requestError) {
       setError(getErrorMessage(requestError));
       return;
@@ -58,7 +61,12 @@ export default function ForgotPasswordPage() {
         ) : null}
         {success ? (
           <div className="alert alert-success" role="status">
-            {success}
+            <p>{success}</p>
+            {resetLink ? (
+              <a href={resetLink}>
+                Open reset link
+              </a>
+            ) : null}
           </div>
         ) : null}
 

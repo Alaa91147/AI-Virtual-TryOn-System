@@ -1,18 +1,8 @@
-<<<<<<< HEAD
+# Python
+**/.venv/
+**/__pycache__/
+*.py[cod]
 
-# Frontend generated files
-frontend/node_modules/
-frontend/.vite/
-frontend/dist/
-
-# Backend generated files
-**/bin/
-**/obj/
-
-# Environment files
-.env
-*.env
-=======
 # .NET
 **/bin/
 **/obj/
@@ -21,6 +11,7 @@ frontend/dist/
 
 # Frontend
 **/node_modules/
+frontend/.vite/
 frontend/dist/
 
 # Local databases and secrets
@@ -37,4 +28,3 @@ backend/*.bak
 Thumbs.db
 .vscode/
 .idea/
->>>>>>> origin/main

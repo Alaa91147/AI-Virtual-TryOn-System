@@ -39,13 +39,33 @@ function clearStoredSession() {
   }
 }
 
+function toStoredUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    gender: user.gender,
+    role: user.role,
+    isEmailVerified: user.isEmailVerified,
+  };
+}
+
+function persistStoredUser(storage, user) {
+  storage.removeItem(USER_KEY);
+  storage.setItem(USER_KEY, JSON.stringify(toStoredUser(user)));
+}
+
 function persistSession(data, rememberMe) {
   clearStoredSession();
 
   const storage = rememberMe ? localStorage : sessionStorage;
   storage.setItem(TOKEN_KEY, data.token);
   storage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-  storage.setItem(USER_KEY, JSON.stringify(data.user));
+  persistStoredUser(storage, data.user);
 }
 
 export function AuthProvider({ children }) {
@@ -81,7 +101,7 @@ export function AuthProvider({ children }) {
           ...session,
           user,
         };
-        session.storage.setItem(USER_KEY, JSON.stringify(user));
+        persistStoredUser(session.storage, user);
         setSession(nextSession);
       } catch {
         if (isMounted) {
@@ -152,6 +172,18 @@ export function AuthProvider({ children }) {
     }
   }, [clearSession, session.refreshToken, session.token]);
 
+  const updateProfile = useCallback(async (payload) => {
+    const user = await authService.updateProfile(session.token, payload);
+    const nextSession = {
+      ...session,
+      user,
+    };
+
+    persistStoredUser(session.storage, user);
+    setSession(nextSession);
+    return user;
+  }, [session]);
+
   const value = useMemo(
     () => ({
       token: session.token,
@@ -163,6 +195,7 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       signup,
       logout,
+      updateProfile,
     }),
     [
       initializing,
@@ -173,6 +206,7 @@ export function AuthProvider({ children }) {
       session.token,
       session.user,
       signup,
+      updateProfile,
     ],
   );
 

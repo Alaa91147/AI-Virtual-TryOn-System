@@ -33,18 +33,79 @@ dotnet ef database update
 
 ## Users Table
 
+Authentication/account root only.
+
 Fields:
 - Id: primary key
-- FullName
 - Email
 - NormalizedEmail
 - PasswordHash
-- Gender
+- GoogleSubject
 - Role: Customer or Admin
 - IsEmailVerified
-- DateOfBirth
 - CreatedAt
 - UpdatedAt
+
+## UserProfiles Table
+
+Profile identity and contact details.
+
+Fields:
+- UserId: primary key and foreign key to Users
+- FullName
+- Gender
+- PhoneNumber
+- ProfilePhotoUrl
+- DateOfBirth
+
+Relationship:
+One user has one profile row.
+
+## UserFitProfiles Table
+
+Fit and size data used for try-on recommendations.
+
+Fields:
+- UserId: primary key and foreign key to Users
+- HeightCm
+- WeightKg
+- PreferredSize
+- BodyShape
+- ShoeSize
+- TopSize
+- BottomSize
+
+Relationship:
+One user has one fit profile row.
+
+## UserTryOnPhotos Table
+
+Photos used by virtual try-on workflows.
+
+Fields:
+- UserId: primary key and foreign key to Users
+- FullBodyPhotoUrl
+- UpperBodyPhotoUrl
+- LowerBodyPhotoUrl
+- FacePhotoUrl
+
+Relationship:
+One user has one try-on photo row.
+
+## UserDeliveryAddresses Table
+
+Delivery address details for shopping checkout.
+
+Fields:
+- UserId: primary key and foreign key to Users
+- Country
+- City
+- Street
+- Building
+- PhoneNumber
+
+Relationship:
+One user has one delivery address row.
 
 ## RefreshTokens Table
 
@@ -58,33 +119,6 @@ Fields:
 
 Relationship:
 One user can have many refresh tokens.
-
-## UserImages Table
-
-Fields:
-- Id: primary key
-- UserId: foreign key to Users
-- FrontBodyImageUrl
-- FaceImageUrl
-- SideBodyImageUrl
-- BackupBodyImageUrl
-
-Relationship:
-One user has one set of images.
-
-## UserMeasurements Table
-
-Fields:
-- Id: primary key
-- UserId: foreign key to Users
-- Gender
-- Height
-- Chest
-- Waist
-- Hips
-
-Relationship:
-One user has one measurement profile.
 
 ## Clothes Table
 
