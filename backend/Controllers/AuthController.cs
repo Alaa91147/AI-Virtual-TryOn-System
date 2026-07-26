@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using VirtualTryOn.Api.DTOs.Auth;
 using VirtualTryOn.Api.Responses;
 using VirtualTryOn.Api.Services;
@@ -8,7 +9,7 @@ namespace VirtualTryOn.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(AuthService authService) : ControllerBase
+public class AuthController(AuthService authService, IWebHostEnvironment environment) : ControllerBase
 {
     [HttpPost("register")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
@@ -83,8 +84,10 @@ public class AuthController(AuthService authService) : ControllerBase
         ForgotPasswordRequest request,
         CancellationToken cancellationToken)
     {
-        await authService.RequestPasswordResetAsync(request, cancellationToken);
-        return Ok(new ApiMessage("If this email exists, we sent a reset link."));
+        var resetLink = await authService.RequestPasswordResetAsync(request, cancellationToken);
+        var developmentResetLink = environment.IsDevelopment() ? resetLink : null;
+
+        return Ok(new ApiMessage("If this email exists, we sent a reset link.", developmentResetLink));
     }
 
     [HttpPost("reset-password")]

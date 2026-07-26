@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VirtualTryOn.Api.Data;
@@ -45,7 +46,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
 
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(
+        connectionString,
+        sqlServerOptions =>
+        {
+            sqlServerOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null);
+            sqlServerOptions.CommandTimeout(60);
+        });
 });
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
@@ -82,6 +92,26 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception exception) when (IsDatabaseUnavailable(exception))
+    {
+        if (context.Response.HasStarted)
+        {
+            throw;
+        }
+
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await context.Response.WriteAsJsonAsync(ApiError.Create(
+            "Database is temporarily unavailable.",
+            "Please wait a moment and try again."));
+    }
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -100,3 +130,42 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static bool IsDatabaseUnavailable(Exception exception)
+{
+    if (exception is TimeoutException)
+    {
+        return true;
+    }
+
+    if (exception is SqlException sqlException)
+    {
+        foreach (SqlError error in sqlException.Errors)
+        {
+            if (IsTransientSqlError(error.Number))
+            {
+                return true;
+            }
+        }
+    }
+
+    return exception.InnerException is not null && IsDatabaseUnavailable(exception.InnerException);
+}
+
+static bool IsTransientSqlError(int errorNumber)
+{
+    return errorNumber is
+        -2 or
+        53 or
+        64 or
+        233 or
+        4060 or
+        10053 or
+        10054 or
+        10060 or
+        10928 or
+        10929 or
+        40197 or
+        40501 or
+        40613;
+}

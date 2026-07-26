@@ -17,6 +17,21 @@ public sealed class UpdateProfileRequest : IValidatableObject
     [StringLength(30, ErrorMessage = "Phone number cannot be longer than 30 characters.")]
     public string? PhoneNumber { get; set; }
 
+    [StringLength(80, ErrorMessage = "Country cannot be longer than 80 characters.")]
+    public string? DeliveryCountry { get; set; }
+
+    [StringLength(100, ErrorMessage = "City cannot be longer than 100 characters.")]
+    public string? DeliveryCity { get; set; }
+
+    [StringLength(160, ErrorMessage = "Street cannot be longer than 160 characters.")]
+    public string? DeliveryStreet { get; set; }
+
+    [StringLength(80, ErrorMessage = "Building cannot be longer than 80 characters.")]
+    public string? DeliveryBuilding { get; set; }
+
+    [StringLength(30, ErrorMessage = "Delivery phone number cannot be longer than 30 characters.")]
+    public string? DeliveryPhoneNumber { get; set; }
+
     public string? ProfilePhotoUrl { get; set; }
 
     public string? FullBodyPhotoUrl { get; set; }
