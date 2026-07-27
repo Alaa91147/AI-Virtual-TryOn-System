@@ -20,10 +20,12 @@ import {
   SlidersHorizontal,
   Trash2,
   Upload,
+  House,
   UserRound,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import ImageAdjuster from '../components/ImageAdjuster.jsx';
 import { getErrorMessage } from '../services/authService.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -386,40 +388,77 @@ export default function ProfilePage() {
   return (
     <main className="profile-shell">
       <header className="profile-topbar">
-        <div className="profile-title-block">
-          <span className="auth-kicker">AI Virtual Try-On Shop</span>
-          <h1>Your profile</h1>
-          <p>Manage your personal details, sizing information, and try-on photos.</p>
-        </div>
-        <div className="profile-topbar-actions">
-          {editScope === 'all' ? (
-            <>
-              <button className="secondary-button profile-header-button" type="button" onClick={cancelEdit} disabled={saving}>
-                <X size={17} aria-hidden="true" />
-                <span>Cancel</span>
-              </button>
-              <button
-                className="primary-button profile-header-button"
-                type="button"
-                onClick={saveChanges}
-                disabled={saving}
-              >
-                <Save size={17} aria-hidden="true" />
-                <span>{saving ? 'Saving…' : 'Save changes'}</span>
-              </button>
-            </>
-          ) : !editing ? (
-            <button className="primary-button profile-header-button" type="button" onClick={() => beginEdit('all')}>
-              <Edit3 size={17} aria-hidden="true" />
-              <span>Edit all</span>
-            </button>
-          ) : <span className="profile-editing-indicator">Editing one section</span>}
-          <button className="ghost-button profile-header-button" type="button" onClick={logout}>
-            <LogOut size={18} aria-hidden="true" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </header>
+  <div className="profile-title-block">
+    <span className="auth-kicker">
+      AI Virtual Try-On Shop
+    </span>
+
+    <h1>Your profile</h1>
+
+    <p>
+      Manage your personal details, sizing information,
+      and try-on photos.
+    </p>
+  </div>
+
+  <div className="profile-topbar-actions">
+    <Link
+      className="ghost-button profile-header-button"
+      to="/shop"
+    >
+      <House size={18} aria-hidden="true" />
+      <span>Home</span>
+    </Link>
+
+    {editScope === 'all' ? (
+      <>
+        <button
+          className="secondary-button profile-header-button"
+          type="button"
+          onClick={cancelEdit}
+          disabled={saving}
+        >
+          <X size={17} aria-hidden="true" />
+          <span>Cancel</span>
+        </button>
+
+        <button
+          className="primary-button profile-header-button"
+          type="button"
+          onClick={saveChanges}
+          disabled={saving}
+        >
+          <Save size={17} aria-hidden="true" />
+          <span>
+            {saving ? 'Saving…' : 'Save changes'}
+          </span>
+        </button>
+      </>
+    ) : !editing ? (
+      <button
+        className="primary-button profile-header-button"
+        type="button"
+        onClick={() => beginEdit('all')}
+      >
+        <Edit3 size={17} aria-hidden="true" />
+        <span>Edit all</span>
+      </button>
+    ) : (
+      <span className="profile-editing-indicator">
+        Editing one section
+      </span>
+    )}
+
+    <button
+      className="ghost-button profile-header-button"
+      type="button"
+      onClick={logout}
+    >
+      <LogOut size={18} aria-hidden="true" />
+      <span>Logout</span>
+    </button>
+  </div>
+</header>
 
       <section className="profile-dashboard">
         <aside className="profile-overview">

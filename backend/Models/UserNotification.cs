@@ -1,0 +1,25 @@
+namespace VirtualTryOn.Api.Models;
+
+public class UserNotification
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    public Guid UserId { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    public string Message { get; set; } = string.Empty;
+
+    public string Type { get; set; } = "general";
+
+    public string? Link { get; set; }
+
+    public bool IsRead { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; } =
+        DateTimeOffset.UtcNow;
+
+    public DateTimeOffset? ReadAt { get; set; }
+
+    public User User { get; set; } = null!;
+}

@@ -397,7 +397,8 @@ public class AuthService(
             profile?.FullName ?? user.Email,
             user.Email,
             profile?.Gender ?? GenderOptions.Other,
-            profile?.PhoneNumber,
+user.ShoppingPreference,
+profile?.PhoneNumber,
             address?.Country,
             address?.City,
             address?.Street,
@@ -430,7 +431,52 @@ public class AuthService(
             .Include(user => user.TryOnPhotos)
             .Include(user => user.DeliveryAddress);
     }
+public async Task<UserProfileResponse?>
+    UpdateShoppingPreferenceAsync(
+        ClaimsPrincipal principal,
+        string preference,
+        CancellationToken cancellationToken)
+{
+    var userId = GetUserId(principal);
 
+    if (userId is null)
+    {
+        return null;
+    }
+
+    var normalizedPreference =
+        preference.Trim().ToLowerInvariant();
+
+    if (!ShoppingPreferences.All.Contains(
+            normalizedPreference))
+    {
+        throw new ArgumentException(
+            "Invalid shopping preference.",
+            nameof(preference));
+    }
+
+    var user = await UsersWithProfileSections()
+        .SingleOrDefaultAsync(
+            account =>
+                account.Id == userId.Value,
+            cancellationToken);
+
+    if (user is null)
+    {
+        return null;
+    }
+
+    user.ShoppingPreference =
+        normalizedPreference;
+
+    user.UpdatedAt =
+        DateTimeOffset.UtcNow;
+
+    await dbContext.SaveChangesAsync(
+        cancellationToken);
+
+    return ToProfileResponse(user);
+}
     private static UserProfile EnsureProfile(User user)
     {
         if (user.Profile is null)

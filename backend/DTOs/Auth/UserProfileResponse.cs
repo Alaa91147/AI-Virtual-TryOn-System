@@ -1,10 +1,9 @@
-namespace VirtualTryOn.Api.DTOs.Auth;
-
 public sealed record UserProfileResponse(
     Guid Id,
     string FullName,
     string Email,
     string Gender,
+    string? ShoppingPreference,
     string? PhoneNumber,
     string? DeliveryCountry,
     string? DeliveryCity,
