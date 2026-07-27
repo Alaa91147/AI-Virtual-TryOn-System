@@ -67,6 +67,12 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddSingleton<GoogleTokenVerifier>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ShopService>();
+builder.Services.AddScoped<FavoriteService>();
+builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<ProductReviewService>();
+builder.Services.AddScoped<NotificationService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 var jwtSecret = Encoding.UTF8.GetBytes(jwtOptions.Secret);
@@ -91,7 +97,15 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext =
+        scope.ServiceProvider
+            .GetRequiredService<AppDbContext>();
 
+    await CatalogSeeder.SeedAsync(dbContext);
+    await ProductSeeder.SeedAsync(dbContext);
+}
 app.Use(async (context, next) =>
 {
     try

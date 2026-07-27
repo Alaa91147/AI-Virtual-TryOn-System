@@ -98,7 +98,7 @@ export default function LoginForm() {
       setSuccess('Signed in successfully.');
 
       const redirectTo =
-        location.state?.from?.pathname || '/shop';
+        location.state?.from?.pathname || '/profile';
 
       window.setTimeout(() => {
         navigate(redirectTo, { replace: true });
@@ -131,8 +131,7 @@ export default function LoginForm() {
         setSuccess('Signed in with Google.');
 
         const redirectTo =
-          location.state?.from?.pathname || '/shop';
-
+location.state?.from?.pathname || '/profile';
         window.setTimeout(() => {
           navigate(redirectTo, { replace: true });
         }, 350);

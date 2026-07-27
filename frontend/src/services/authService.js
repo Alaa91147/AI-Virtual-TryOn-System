@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5113';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5113';
 
 export class ApiError extends Error {
   constructor(message, errors = []) {
@@ -8,31 +10,57 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { token, ...options } = {}) {
-  const headers = new Headers(options.headers || {});
+export async function request(
+  path,
+  { token, ...options } = {},
+) {
+  const headers = new Headers(
+    options.headers || {},
+  );
 
-  if (!headers.has('Content-Type') && options.body) {
-    headers.set('Content-Type', 'application/json');
+  if (
+    !headers.has('Content-Type') &&
+    options.body
+  ) {
+    headers.set(
+      'Content-Type',
+      'application/json',
+    );
   }
 
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set(
+      'Authorization',
+      `Bearer ${token}`,
+    );
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}${path}`,
+    {
+      ...options,
+      headers,
+    },
+  );
 
   let data = null;
-  const contentType = response.headers.get('content-type') || '';
+
+  const contentType =
+    response.headers.get('content-type') || '';
+
   if (contentType.includes('application/json')) {
     data = await response.json();
   }
 
   if (!response.ok) {
-    const errors = Array.isArray(data?.errors) ? data.errors : [];
-    const message = data?.message || cleanFallbackMessage(response.status);
+    const errors = Array.isArray(data?.errors)
+      ? data.errors
+      : [];
+
+    const message =
+      data?.message ||
+      cleanFallbackMessage(response.status);
+
     throw new ApiError(message, errors);
   }
 
@@ -51,13 +79,24 @@ function cleanFallbackMessage(status) {
   return 'Something went wrong. Please try again.';
 }
 
-export function getErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
+export function getErrorMessage(
+  error,
+  fallback =
+    'Something went wrong. Please try again.',
+) {
   if (error instanceof ApiError) {
-    return error.errors[0] || error.message || fallback;
+    return (
+      error.errors[0] ||
+      error.message ||
+      fallback
+    );
   }
 
   if (error instanceof TypeError) {
-    return 'Cannot connect to the server. Make sure the backend is running.';
+    return (
+      'Cannot connect to the server. ' +
+      'Make sure the backend is running.'
+    );
   }
 
   return fallback;
@@ -86,24 +125,32 @@ export const authService = {
   },
 
   forgotPassword(payload) {
-    return request('/api/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    return request(
+      '/api/auth/forgot-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
   },
 
   resetPassword(payload) {
-    return request('/api/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    return request(
+      '/api/auth/reset-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
   },
 
   logout(token, refreshToken) {
     return request('/api/auth/logout', {
       method: 'POST',
       token,
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({
+        refreshToken,
+      }),
     });
   },
 
@@ -120,5 +167,21 @@ export const authService = {
       token,
       body: JSON.stringify(payload),
     });
+  },
+
+  updateShoppingPreference(
+    token,
+    preference,
+  ) {
+    return request(
+      '/api/auth/shopping-preference',
+      {
+        method: 'PUT',
+        token,
+        body: JSON.stringify({
+          preference,
+        }),
+      },
+    );
   },
 };

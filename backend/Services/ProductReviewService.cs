@@ -259,8 +259,10 @@ return new ReviewMutationResult(
                     new ProductReviewResponse(
                         review.Id,
                         review.UserId,
-                        review.User.FullName,
-                        review.Rating,
+review.User.Profile != null
+    ? review.User.Profile.FullName
+    : review.User.FullName,
+                            review.Rating,
                         review.Comment,
                         review.CreatedAt,
                         review.UpdatedAt,
