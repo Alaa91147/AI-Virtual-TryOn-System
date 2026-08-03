@@ -13,7 +13,10 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import ProductDetailsPage from './pages/ProductDetailsPage.jsx';
 import CartPage from './pages/CartPage.jsx';
+import AdminProductsPage from './pages/AdminProductsPage.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
+import AdminRoute from './routes/AdminRoute.jsx';
+import CustomerRoute from './routes/CustomerRoute.jsx';
 import NotificationToast from './components/shop/NotificationToast.jsx';
 
 export default function App() {
@@ -55,9 +58,9 @@ export default function App() {
         <Route
           path="/shop"
           element={
-            <ProtectedRoute>
+            <CustomerRoute>
               <LoggedInHomePage />
-            </ProtectedRoute>
+            </CustomerRoute>
           }
         />
 
@@ -73,18 +76,27 @@ export default function App() {
         <Route
           path="/shop/cart"
           element={
-            <ProtectedRoute>
+            <CustomerRoute>
               <CartPage />
-            </ProtectedRoute>
+            </CustomerRoute>
           }
         />
 
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <CustomerRoute>
               <ProfilePage />
-            </ProtectedRoute>
+            </CustomerRoute>
+          }
+        />
+
+        <Route
+          path="/admin/products"
+          element={
+            <AdminRoute>
+              <AdminProductsPage />
+            </AdminRoute>
           }
         />
 
