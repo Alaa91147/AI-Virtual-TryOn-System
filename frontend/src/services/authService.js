@@ -20,7 +20,8 @@ export async function request(
 
   if (
     !headers.has('Content-Type') &&
-    options.body
+    options.body &&
+    !(options.body instanceof FormData)
   ) {
     headers.set(
       'Content-Type',

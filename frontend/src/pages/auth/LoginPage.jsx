@@ -4,10 +4,19 @@ import LoginForm from '../../components/auth/LoginForm.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function LoginPage() {
-  const { isAuthenticated, initializing } = useAuth();
+  const { isAuthenticated, initializing, user } = useAuth();
 
   if (!initializing && isAuthenticated) {
-    return <Navigate to="/profile" replace />;
+    return (
+      <Navigate
+        to={
+          user?.role === 'Admin'
+            ? '/admin/products'
+            : '/profile'
+        }
+        replace
+      />
+    );
   }
 
   return (

@@ -407,8 +407,17 @@ export default function ProfilePage() {
       to="/shop"
     >
       <House size={18} aria-hidden="true" />
-      <span>Home</span>
+      <span>Shop</span>
     </Link>
+
+    <button
+      className="ghost-button profile-header-button"
+      type="button"
+      onClick={logout}
+    >
+      <LogOut size={18} aria-hidden="true" />
+      <span>Sign out</span>
+    </button>
 
     {editScope === 'all' ? (
       <>
@@ -441,7 +450,7 @@ export default function ProfilePage() {
         onClick={() => beginEdit('all')}
       >
         <Edit3 size={17} aria-hidden="true" />
-        <span>Edit all</span>
+        <span>Edit profile</span>
       </button>
     ) : (
       <span className="profile-editing-indicator">
@@ -449,14 +458,6 @@ export default function ProfilePage() {
       </span>
     )}
 
-    <button
-      className="ghost-button profile-header-button"
-      type="button"
-      onClick={logout}
-    >
-      <LogOut size={18} aria-hidden="true" />
-      <span>Logout</span>
-    </button>
   </div>
 </header>
 
@@ -632,7 +633,7 @@ export default function ProfilePage() {
           <div className="profile-card-header">
             <div>
               <span className="profile-section-kicker">Shipping information</span>
-              <h2>Delivery Address</h2>
+              <h2>Delivery address</h2>
             </div>
             {renderSectionActions('address', 'address')}
           </div>
@@ -757,7 +758,7 @@ export default function ProfilePage() {
             </div>
             <div className="profile-card-header-actions">
               <span className="profile-card-count">{completedFitFields}/7 added</span>
-              {renderSectionActions('fit', 'fit')}
+              {renderSectionActions('fit', 'measurements')}
             </div>
           </div>
           {!editingFit ? (
@@ -900,7 +901,7 @@ export default function ProfilePage() {
           <div className="profile-card-header">
             <div>
               <span className="profile-section-kicker">AI-ready images</span>
-              <h2>Try-On Photos</h2>
+              <h2>Try-on photos</h2>
               <p className="profile-section-description">Use clear, well-framed photos for more accurate virtual try-on results.</p>
             </div>
             <div className="profile-card-header-actions">

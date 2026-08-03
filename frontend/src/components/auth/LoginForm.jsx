@@ -89,7 +89,7 @@ export default function LoginForm() {
     try {
       setSubmitting(true);
 
-      await login({
+      const data = await login({
         email: values.email.trim(),
         password: values.password,
         rememberMe: values.rememberMe,
@@ -98,7 +98,9 @@ export default function LoginForm() {
       setSuccess('Signed in successfully.');
 
       const redirectTo =
-        location.state?.from?.pathname || '/profile';
+        data.user?.role === 'Admin'
+          ? '/admin/products'
+          : location.state?.from?.pathname || '/profile';
 
       window.setTimeout(() => {
         navigate(redirectTo, { replace: true });
@@ -123,7 +125,7 @@ export default function LoginForm() {
         setFormError('');
         setSuccess('');
 
-        await loginWithGoogle({
+        const data = await loginWithGoogle({
           credential,
           rememberMe: values.rememberMe,
         });
@@ -131,7 +133,9 @@ export default function LoginForm() {
         setSuccess('Signed in with Google.');
 
         const redirectTo =
-location.state?.from?.pathname || '/profile';
+          data.user?.role === 'Admin'
+            ? '/admin/products'
+            : location.state?.from?.pathname || '/profile';
         window.setTimeout(() => {
           navigate(redirectTo, { replace: true });
         }, 350);
