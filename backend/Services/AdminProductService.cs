@@ -5,7 +5,9 @@ using VirtualTryOn.Api.Models;
 
 namespace VirtualTryOn.Api.Services;
 
-public class AdminProductService(AppDbContext dbContext)
+public class AdminProductService(
+    AppDbContext dbContext,
+    IWebHostEnvironment environment)
 {
     public async Task<AdminCatalogResponse> GetCatalogAsync(
         CancellationToken cancellationToken)
@@ -22,9 +24,9 @@ public class AdminProductService(AppDbContext dbContext)
             .OrderByDescending(product => product.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var products = productEntities.Select(ToResponse).ToList();
-
-        return new AdminCatalogResponse(categories, products);
+        return new AdminCatalogResponse(
+            categories,
+            productEntities.Select(ToResponse).ToList());
     }
 
     public async Task<AdminProductResponse?> CreateAsync(
@@ -36,6 +38,9 @@ public class AdminProductService(AppDbContext dbContext)
             return null;
         }
 
+        var originalImageUrl =
+            CleanUrl(request.OriginalImageUrl) ?? request.ImageUrl.Trim();
+
         var product = new Product
         {
             CategoryId = request.CategoryId,
@@ -43,9 +48,12 @@ public class AdminProductService(AppDbContext dbContext)
             Slug = NormalizeSlug(request.Slug),
             Description = request.Description.Trim(),
             Price = request.Price,
-            ImageUrl = request.ImageUrl.Trim(),
+            OriginalImageUrl = originalImageUrl,
+            ImageUrl = originalImageUrl,
+            AiMaskImageUrl = CleanUrl(request.AiMaskImageUrl),
             Badge = CleanBadge(request.Badge),
-            IsNew = string.Equals(request.Badge, "New", StringComparison.OrdinalIgnoreCase),
+            IsNew = string.Equals(
+                request.Badge, "New", StringComparison.OrdinalIgnoreCase),
             IsActive = request.IsActive,
             Colors = CleanColors(request),
             Sizes = CleanSizes(request)
@@ -64,7 +72,9 @@ public class AdminProductService(AppDbContext dbContext)
         var product = await dbContext.Products
             .Include(item => item.Colors)
             .Include(item => item.Sizes)
-            .SingleOrDefaultAsync(item => item.Id == productId, cancellationToken);
+            .SingleOrDefaultAsync(
+                item => item.Id == productId,
+                cancellationToken);
 
         if (product is null ||
             !await IsRequestValidAsync(request, productId, cancellationToken))
@@ -72,14 +82,29 @@ public class AdminProductService(AppDbContext dbContext)
             return null;
         }
 
+        var obsoleteUploadUrls = product.Colors
+            .Select(color => color.ImageUrl)
+            .Append(product.AiMaskImageUrl)
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Cast<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var originalImageUrl =
+            CleanUrl(request.OriginalImageUrl)
+            ?? CleanUrl(product.OriginalImageUrl)
+            ?? request.ImageUrl.Trim();
+
         product.CategoryId = request.CategoryId;
         product.Name = request.Name.Trim();
         product.Slug = NormalizeSlug(request.Slug);
         product.Description = request.Description.Trim();
         product.Price = request.Price;
-        product.ImageUrl = request.ImageUrl.Trim();
+        product.OriginalImageUrl = originalImageUrl;
+        product.ImageUrl = originalImageUrl;
+        product.AiMaskImageUrl = CleanUrl(request.AiMaskImageUrl);
         product.Badge = CleanBadge(request.Badge);
-        product.IsNew = string.Equals(request.Badge, "New", StringComparison.OrdinalIgnoreCase);
+        product.IsNew = string.Equals(
+            request.Badge, "New", StringComparison.OrdinalIgnoreCase);
         product.IsActive = request.IsActive;
         product.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -87,6 +112,9 @@ public class AdminProductService(AppDbContext dbContext)
         MergeSizes(product, request);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await DeleteObsoleteUploadsAsync(
+            obsoleteUploadUrls,
+            cancellationToken);
         return await GetByIdAsync(product.Id, cancellationToken);
     }
 
@@ -96,6 +124,7 @@ public class AdminProductService(AppDbContext dbContext)
         CancellationToken cancellationToken)
     {
         var slug = NormalizeSlug(request.Slug);
+
         return await dbContext.Categories.AnyAsync(
                    category => category.Id == request.CategoryId,
                    cancellationToken) &&
@@ -112,6 +141,7 @@ public class AdminProductService(AppDbContext dbContext)
     {
         var product = await ProductQuery()
             .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+
         return product is null ? null : ToResponse(product);
     }
 
@@ -125,72 +155,113 @@ public class AdminProductService(AppDbContext dbContext)
 
     private static AdminProductResponse ToResponse(Product product) =>
         new(
-            product.Id, product.CategoryId, product.Category.Name,
-            product.Category.Audience, product.Name, product.Slug,
-            product.Description, product.Price, product.ImageUrl,
-            product.Badge, product.IsNew, product.IsActive,
-            product.Colors.OrderBy(color => color.Name)
+            product.Id,
+            product.CategoryId,
+            product.Category.Name,
+            product.Category.Audience,
+            product.Name,
+            product.Slug,
+            product.Description,
+            product.Price,
+            product.ImageUrl,
+            string.IsNullOrWhiteSpace(product.OriginalImageUrl)
+                ? product.ImageUrl
+                : product.OriginalImageUrl,
+            product.AiMaskImageUrl,
+            product.Badge,
+            product.IsNew,
+            product.IsActive,
+            product.Colors
+                .OrderBy(color => color.Name)
                 .Select(color => new AdminProductColorResponse(
-                    color.Id, color.Name, color.HexCode)).ToList(),
-            product.Sizes.OrderBy(size => size.Name)
+                    color.Id,
+                    color.Name,
+                    color.HexCode,
+                    color.ImageUrl))
+                .ToList(),
+            product.Sizes
+                .OrderBy(size => size.Name)
                 .Select(size => new AdminProductSizeResponse(
-                    size.Id, size.Name, size.StockQuantity)).ToList());
+                    size.Id,
+                    size.Name,
+                    size.StockQuantity))
+                .ToList());
 
-    private static List<ProductColor> CleanColors(SaveAdminProductRequest request) =>
+    private static List<ProductColor> CleanColors(
+        SaveAdminProductRequest request) =>
         request.Colors
             .Where(color => !string.IsNullOrWhiteSpace(color.Name))
-            .GroupBy(color => color.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(
+                color => color.Name.Trim(),
+                StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .Select(color => new ProductColor
             {
                 Name = color.Name.Trim(),
-                HexCode = color.HexCode.Trim()
-            }).ToList();
+                HexCode = color.HexCode.Trim(),
+                ImageUrl = CleanUrl(color.ImageUrl)
+            })
+            .ToList();
 
-    private static List<ProductSize> CleanSizes(SaveAdminProductRequest request) =>
+    private static List<ProductSize> CleanSizes(
+        SaveAdminProductRequest request) =>
         request.Sizes
             .Where(size => !string.IsNullOrWhiteSpace(size.Name))
-            .GroupBy(size => size.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(
+                size => size.Name.Trim(),
+                StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .Select(size => new ProductSize
             {
                 Name = size.Name.Trim(),
                 StockQuantity = Math.Max(0, size.StockQuantity)
-            }).ToList();
+            })
+            .ToList();
 
-    private static void MergeColors(
+    private void MergeColors(
         Product product,
         SaveAdminProductRequest request)
     {
         foreach (var requested in CleanColors(request))
         {
             var existing = product.Colors.FirstOrDefault(color =>
-                string.Equals(color.Name, requested.Name,
+                string.Equals(
+                    color.Name,
+                    requested.Name,
                     StringComparison.OrdinalIgnoreCase));
+
             if (existing is null)
             {
+                requested.ProductId = product.Id;
                 product.Colors.Add(requested);
+                dbContext.Entry(requested).State = EntityState.Added;
             }
             else
             {
                 existing.Name = requested.Name;
                 existing.HexCode = requested.HexCode;
+                existing.ImageUrl = requested.ImageUrl;
             }
         }
     }
 
-    private static void MergeSizes(
+    private void MergeSizes(
         Product product,
         SaveAdminProductRequest request)
     {
         foreach (var requested in CleanSizes(request))
         {
             var existing = product.Sizes.FirstOrDefault(size =>
-                string.Equals(size.Name, requested.Name,
+                string.Equals(
+                    size.Name,
+                    requested.Name,
                     StringComparison.OrdinalIgnoreCase));
+
             if (existing is null)
             {
+                requested.ProductId = product.Id;
                 product.Sizes.Add(requested);
+                dbContext.Entry(requested).State = EntityState.Added;
             }
             else
             {
@@ -205,4 +276,84 @@ public class AdminProductService(AppDbContext dbContext)
 
     private static string? CleanBadge(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? CleanUrl(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task DeleteObsoleteUploadsAsync(
+        IEnumerable<string> previousUrls,
+        CancellationToken cancellationToken)
+    {
+        foreach (var previousUrl in previousUrls.Distinct(
+                     StringComparer.OrdinalIgnoreCase))
+        {
+            var stillReferenced =
+                await dbContext.Products.AsNoTracking().AnyAsync(
+                    product =>
+                        product.ImageUrl == previousUrl ||
+                        product.OriginalImageUrl == previousUrl ||
+                        product.AiMaskImageUrl == previousUrl,
+                    cancellationToken) ||
+                await dbContext.ProductColors.AsNoTracking().AnyAsync(
+                    color => color.ImageUrl == previousUrl,
+                    cancellationToken);
+
+            if (stillReferenced || !TryGetManagedUploadPath(
+                    previousUrl,
+                    out var uploadPath))
+            {
+                continue;
+            }
+
+            if (File.Exists(uploadPath))
+            {
+                File.Delete(uploadPath);
+            }
+        }
+    }
+
+    private bool TryGetManagedUploadPath(
+        string imageUrl,
+        out string uploadPath)
+    {
+        uploadPath = string.Empty;
+
+        if (!Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        const string uploadPrefix = "/uploads/products/";
+        if (!uri.AbsolutePath.StartsWith(
+                uploadPrefix,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileName(uri.AbsolutePath);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return false;
+        }
+
+        var uploadDirectory = Path.GetFullPath(Path.Combine(
+            environment.ContentRootPath,
+            "wwwroot",
+            "uploads",
+            "products"));
+        var candidatePath = Path.GetFullPath(Path.Combine(
+            uploadDirectory,
+            fileName));
+
+        if (!candidatePath.StartsWith(
+                uploadDirectory + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        uploadPath = candidatePath;
+        return true;
+    }
 }

@@ -7,10 +7,7 @@ public sealed record AdminCatalogResponse(
     IReadOnlyList<AdminProductResponse> Products);
 
 public sealed record AdminCategoryResponse(
-    Guid Id,
-    string Name,
-    string Slug,
-    string Audience);
+    Guid Id, string Name, string Slug, string Audience);
 
 public sealed record AdminProductResponse(
     Guid Id,
@@ -22,6 +19,8 @@ public sealed record AdminProductResponse(
     string Description,
     decimal Price,
     string ImageUrl,
+    string OriginalImageUrl,
+    string? AiMaskImageUrl,
     string? Badge,
     bool IsNew,
     bool IsActive,
@@ -29,14 +28,10 @@ public sealed record AdminProductResponse(
     IReadOnlyList<AdminProductSizeResponse> Sizes);
 
 public sealed record AdminProductColorResponse(
-    Guid Id,
-    string Name,
-    string HexCode);
+    Guid Id, string Name, string HexCode, string? ImageUrl);
 
 public sealed record AdminProductSizeResponse(
-    Guid Id,
-    string Name,
-    int StockQuantity);
+    Guid Id, string Name, int StockQuantity);
 
 public sealed class SaveAdminProductRequest
 {
@@ -58,13 +53,17 @@ public sealed class SaveAdminProductRequest
     [Required, MaxLength(2048)]
     public string ImageUrl { get; set; } = string.Empty;
 
+    [MaxLength(2048)]
+    public string? OriginalImageUrl { get; set; }
+
+    [MaxLength(2048)]
+    public string? AiMaskImageUrl { get; set; }
+
     [MaxLength(30)]
     public string? Badge { get; set; }
 
     public bool IsActive { get; set; } = true;
-
     public List<SaveAdminProductColorRequest> Colors { get; set; } = [];
-
     public List<SaveAdminProductSizeRequest> Sizes { get; set; } = [];
 }
 
@@ -75,6 +74,9 @@ public sealed class SaveAdminProductColorRequest
 
     [Required, MaxLength(9)]
     public string HexCode { get; set; } = string.Empty;
+
+    [MaxLength(2048)]
+    public string? ImageUrl { get; set; }
 }
 
 public sealed class SaveAdminProductSizeRequest

@@ -186,9 +186,10 @@ product.Colors
                     color.Name)
                 .Select(color =>
                     new ShopProductColorResponse(
-                        color.Id,
-                        color.Name,
-                        color.HexCode))
+    color.Id,
+    color.Name,
+    color.HexCode,
+    color.ImageUrl))
                 .ToList(),
             product.Sizes
                 .OrderBy(size =>

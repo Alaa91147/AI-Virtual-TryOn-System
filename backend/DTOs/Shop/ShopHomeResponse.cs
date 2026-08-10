@@ -36,7 +36,8 @@ public sealed record ShopProductResponse(
 public sealed record ShopProductColorResponse(
     Guid Id,
     string Name,
-    string HexCode);
+    string HexCode,
+    string? ImageUrl);
 
 public sealed record ShopProductSizeResponse(
     Guid Id,

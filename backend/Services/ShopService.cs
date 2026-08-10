@@ -114,14 +114,15 @@ product.Favorites.Any(
             userId.Value),
 product.IsNew,
 product.Colors
-                            .OrderBy(color =>
-                                color.Name)
-                            .Select(color =>
-                                new ShopProductColorResponse(
-                                    color.Id,
-                                    color.Name,
-                                    color.HexCode))
-                            .ToList(),
+    .OrderBy(color =>
+        color.Name)
+    .Select(color =>
+        new ShopProductColorResponse(
+            color.Id,
+            color.Name,
+            color.HexCode,
+            color.ImageUrl))
+    .ToList(),
                         product.Sizes
                             .OrderBy(size =>
                                 size.Name)
