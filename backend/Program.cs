@@ -43,8 +43,12 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+    var connectionString = builder.Configuration
+        .GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException(
+            "ConnectionStrings:DefaultConnection is not configured.");
+
+
 
     options.UseSqlServer(
         connectionString,
@@ -54,10 +58,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(5),
                 errorNumbersToAdd: null);
+
             sqlServerOptions.CommandTimeout(60);
         });
 });
-
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection(GoogleAuthOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
@@ -105,7 +109,7 @@ using (var scope = app.Services.CreateScope())
             .GetRequiredService<AppDbContext>();
 
     await CatalogSeeder.SeedAsync(dbContext);
-    await ProductSeeder.SeedAsync(dbContext);
+  //  await ProductSeeder.SeedAsync(dbContext);
 }
 app.Use(async (context, next) =>
 {
@@ -137,10 +141,28 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors("Frontend");
+app.UseCors(policy =>
+{
+    policy
+        .AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+});
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        var origin = context.Context.Request.Headers.Origin.ToString();
 
-app.UseStaticFiles();
-
+        if (allowedOrigins.Contains(
+                origin,
+                StringComparer.OrdinalIgnoreCase))
+        {
+            context.Context.Response.Headers.AccessControlAllowOrigin = origin;
+            context.Context.Response.Headers.Vary = "Origin";
+        }
+    }
+});
 app.UseAuthentication();
 app.UseAuthorization();
 

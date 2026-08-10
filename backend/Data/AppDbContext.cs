@@ -392,36 +392,38 @@ private static void ConfigureFavorite(
     }
 
     private static void ConfigureProductColor(
-        ModelBuilder modelBuilder)
+    ModelBuilder modelBuilder)
+{
+    modelBuilder.Entity<ProductColor>(entity =>
     {
-        modelBuilder.Entity<ProductColor>(entity =>
-        {
-            entity.ToTable("ProductColors");
+        entity.ToTable("ProductColors");
 
-            entity.HasKey(color => color.Id);
+        entity.HasKey(color => color.Id);
 
-            entity.Property(color => color.Name)
-                .HasMaxLength(60)
-                .IsRequired();
+        entity.Property(color => color.Name)
+            .HasMaxLength(60)
+            .IsRequired();
 
-            entity.Property(color => color.HexCode)
-                .HasMaxLength(9)
-                .IsRequired();
+        entity.Property(color => color.HexCode)
+            .HasMaxLength(9)
+            .IsRequired();
 
-            entity.HasIndex(color => new
-                {
-                    color.ProductId,
-                    color.Name
-                })
-                .IsUnique();
+        entity.Property(color => color.ImageUrl)
+            .HasMaxLength(2048);
 
-            entity.HasOne(color => color.Product)
-                .WithMany(product => product.Colors)
-                .HasForeignKey(color => color.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-    }
+        entity.HasIndex(color => new
+            {
+                color.ProductId,
+                color.Name
+            })
+            .IsUnique();
 
+        entity.HasOne(color => color.Product)
+            .WithMany(product => product.Colors)
+            .HasForeignKey(color => color.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+    });
+}
     private static void ConfigureProductSize(
         ModelBuilder modelBuilder)
     {

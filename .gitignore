@@ -28,3 +28,8 @@ backend/*.bak
 Thumbs.db
 .vscode/
 .idea/
+
+ai-service/.venv/
+ai-service/models/*.pt
+backend/wwwroot/uploads/products/*
+!backend/wwwroot/uploads/products/.gitkeep

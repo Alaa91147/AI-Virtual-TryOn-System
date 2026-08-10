@@ -280,6 +280,8 @@ export default function ProductDetailsPage() {
   const selectedColor = product.colors?.find(
     (color) => color.id === selectedColorId,
   );
+const displayedImage =
+  selectedColor?.imageUrl || product.imageUrl;
 
   const maximumQuantity = Math.min(
     selectedSize?.stockQuantity || 1,
@@ -298,10 +300,14 @@ export default function ProductDetailsPage() {
 
       <section className="product-details-layout">
         <div className="product-details-image">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-          />
+         <img
+  src={displayedImage}
+  alt={
+    selectedColor
+      ? `${product.name} in ${selectedColor.name}`
+      : product.name
+  }
+/>
 
           {product.badge ? (
             <span>{product.badge}</span>
