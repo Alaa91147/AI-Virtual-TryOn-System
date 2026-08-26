@@ -24,6 +24,8 @@ public sealed record ShopProductResponse(
     string Slug,
     string Description,
     decimal Price,
+    decimal? SalePrice,
+    decimal? DiscountPercentage,
     string ImageUrl,
     string? Badge,
     decimal Rating,

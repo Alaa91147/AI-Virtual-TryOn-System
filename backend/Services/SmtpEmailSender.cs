@@ -7,9 +7,11 @@ namespace VirtualTryOn.Api.Services;
 
 public sealed class SmtpEmailSender(
     IOptions<EmailOptions> emailOptions,
+    IOptions<AppUrlOptions> appUrlOptions,
     ILogger<SmtpEmailSender> logger) : IEmailSender
 {
     private readonly EmailOptions _emailOptions = emailOptions.Value;
+    private readonly AppUrlOptions _appUrlOptions = appUrlOptions.Value;
 
     public async Task SendPasswordResetEmailAsync(string email, string resetLink, CancellationToken cancellationToken)
     {
@@ -105,5 +107,58 @@ public sealed class SmtpEmailSender(
         await smtpClient.SendMailAsync(message, cancellationToken);
 
         logger.LogWarning("Password reset email sent to {Email}.", email);
+    }
+
+    public async Task SendPromotionEmailAsync(
+        string email,
+        string customerName,
+        string promotionName,
+        decimal discountPercentage,
+        DateTimeOffset endsAt,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_emailOptions.SmtpHost) ||
+            string.IsNullOrWhiteSpace(_emailOptions.From))
+        {
+            logger.LogWarning("SMTP is not configured. Promotion email skipped for {Email}.", email);
+            return;
+        }
+
+        var name = WebUtility.HtmlEncode(customerName);
+        var campaign = WebUtility.HtmlEncode(promotionName);
+        var shopUrl = $"{_appUrlOptions.FrontendBaseUrl.TrimEnd('/')}/shop";
+        var discount = decimal.Round(discountPercentage, 0);
+        var body = $$"""
+        <!doctype html><html><body style="margin:0;background:#f4f1ec;font-family:Arial,sans-serif;color:#191715">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:36px 16px"><tr><td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border:1px solid #ded8ce;border-radius:12px;overflow:hidden">
+        <tr><td style="height:7px;background:#9a7b4f"></td></tr><tr><td style="padding:38px">
+        <p style="font-size:13px;font-weight:800;letter-spacing:.14em;color:#9a7b4f;text-transform:uppercase">AI Virtual Try-On</p>
+        <h1 style="font-size:34px;margin:12px 0">Hello {{name}}!</h1>
+        <p style="font-size:18px;line-height:1.6;color:#625d55">We made a special offer for you. Enjoy <strong style="color:#191715">up to {{discount}}% off</strong> selected products in our {{campaign}} promotion.</p>
+        <p style="color:#777067">Offer ends {{endsAt:MMMM d, yyyy}}.</p>
+        <p style="margin-top:30px"><a href="{{shopUrl}}" style="display:inline-block;padding:15px 28px;background:#191715;color:#fff;text-decoration:none;border-radius:7px;font-weight:800">Shop the sale</a></p>
+        </td></tr></table></td></tr></table></body></html>
+        """;
+
+        using var message = new MailMessage
+        {
+            From = new MailAddress(_emailOptions.From, _emailOptions.FromName),
+            Subject = $"Up to {discount}% off — selected for you",
+            Body = body,
+            BodyEncoding = Encoding.UTF8,
+            SubjectEncoding = Encoding.UTF8,
+            IsBodyHtml = true
+        };
+        message.To.Add(email);
+
+        using var client = new SmtpClient(_emailOptions.SmtpHost, _emailOptions.SmtpPort)
+        {
+            EnableSsl = _emailOptions.EnableSsl
+        };
+        if (!string.IsNullOrWhiteSpace(_emailOptions.SmtpUsername))
+            client.Credentials = new NetworkCredential(_emailOptions.SmtpUsername, _emailOptions.SmtpPassword);
+
+        await client.SendMailAsync(message, cancellationToken);
     }
 }

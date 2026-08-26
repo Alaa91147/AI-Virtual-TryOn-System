@@ -24,11 +24,12 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ImageAdjuster from '../components/ImageAdjuster.jsx';
 import { getErrorMessage } from '../services/authService.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { orderService } from '../services/orderService.js';
 import {
   getImageValidationRequirement,
   validateImageUploadBasics,
@@ -150,7 +151,7 @@ const photoLabels = Object.fromEntries([
 ]);
 
 export default function ProfilePage() {
-  const { user, logout, updateProfile } = useAuth();
+  const { user, token, logout, updateProfile } = useAuth();
   const [editScope, setEditScope] = useState(null);
   const [values, setValues] = useState(() => toFormValues(user));
   const [formError, setFormError] = useState('');
@@ -159,6 +160,29 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState(null);
   const [viewedPhoto, setViewedPhoto] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState('');
+  const [showOrderHistory, setShowOrderHistory] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadOrders() {
+      if (!token) return;
+      try {
+        setOrdersLoading(true);
+        setOrdersError('');
+        const result = await orderService.mine(token);
+        if (active) setOrders(Array.isArray(result) ? result : []);
+      } catch (error) {
+        if (active) setOrdersError(getErrorMessage(error, 'Could not load your orders.'));
+      } finally {
+        if (active) setOrdersLoading(false);
+      }
+    }
+    loadOrders();
+    return () => { active = false; };
+  }, [token]);
 
   const editing = editScope !== null;
   const editingAccount = editScope === 'all' || editScope === 'account';
@@ -744,9 +768,9 @@ export default function ProfilePage() {
             <h2>My Orders</h2>
             <Package size={20} aria-hidden="true" />
           </div>
-          <p className="order-history-state">No orders yet</p>
-          <button className="secondary-button order-history-button" type="button">
-            View order history
+          {ordersLoading ? <p className="order-history-state">Loading orders...</p> : ordersError ? <p className="order-history-state order-history-error">{ordersError}</p> : orders.length ? <div className="profile-latest-order"><span><strong>{orders[0].orderNumber}</strong><small>{formatDate(orders[0].createdAt)}</small></span><b className={`profile-order-status status-${orders[0].status.toLowerCase()}`}>{orders[0].status}</b><strong>${Number(orders[0].total).toFixed(2)}</strong></div> : <p className="order-history-state">No orders yet</p>}
+          <button className="secondary-button order-history-button" type="button" onClick={() => setShowOrderHistory(true)} disabled={ordersLoading}>
+            View order history {orders.length ? `(${orders.length})` : ''}
           </button>
         </article>
 
@@ -991,6 +1015,14 @@ export default function ProfilePage() {
           </div>
         </article>
       </section>
+      {showOrderHistory ? (
+        <div className="profile-orders-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowOrderHistory(false); }}>
+          <section className="profile-orders-modal" role="dialog" aria-modal="true" aria-labelledby="order-history-title">
+            <div className="profile-orders-header"><div><span className="profile-section-kicker">PURCHASE HISTORY</span><h2 id="order-history-title">My Orders</h2><p>{orders.length} {orders.length === 1 ? 'order' : 'orders'} placed</p></div><button className="icon-button" type="button" onClick={() => setShowOrderHistory(false)} aria-label="Close order history"><X size={20}/></button></div>
+            <div className="profile-orders-list">{ordersError?<div className="alert alert-error">{ordersError}</div>:orders.length===0?<div className="profile-orders-empty"><Package size={28}/><strong>No orders yet</strong><p>Your completed checkouts will appear here.</p><Link className="primary-button" to="/shop">Start shopping</Link></div>:orders.map((order)=><article className="profile-order" key={order.id}><header><div><strong>{order.orderNumber}</strong><small>{new Date(order.createdAt).toLocaleString()}</small></div><span className={`profile-order-status status-${order.status.toLowerCase()}`}>{order.status}</span></header><div className="profile-order-items">{order.items.map((item)=><div key={item.id}><img src={item.imageUrl} alt=""/><span><strong>{item.productName}</strong><small>{item.sizeName}{item.colorName?` · ${item.colorName}`:''} · Qty {item.quantity}</small></span><b>${Number(item.lineTotal).toFixed(2)}</b></div>)}</div><footer><span>Order total</span><strong>${Number(order.total).toFixed(2)}</strong></footer></article>)}</div>
+          </section>
+        </div>
+      ) : null}
       {pendingPhoto ? (
         <ImageAdjuster
           file={pendingPhoto.file}

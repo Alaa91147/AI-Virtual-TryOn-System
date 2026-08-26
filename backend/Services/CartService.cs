@@ -307,11 +307,30 @@ return new CartMutationResult(
                     item.ProductColor != null
                         ? item.ProductColor.HexCode
                         : null,
-                    item.ProductSize.Product.Price,
+                    item.ProductSize.Product.Promotions.Any(link =>
+                        link.Promotion.IsActive &&
+                        link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                        link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                        ? item.ProductSize.Product.Price * (1m -
+                            item.ProductSize.Product.Promotions
+                                .Where(link => link.Promotion.IsActive &&
+                                    link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                                    link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                                .Max(link => link.Promotion.DiscountPercentage) / 100m)
+                        : item.ProductSize.Product.Price,
                     item.Quantity,
                     item.ProductSize.StockQuantity,
-                    item.ProductSize.Product.Price *
-                        item.Quantity))
+                    (item.ProductSize.Product.Promotions.Any(link =>
+                        link.Promotion.IsActive &&
+                        link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                        link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                        ? item.ProductSize.Product.Price * (1m -
+                            item.ProductSize.Product.Promotions
+                                .Where(link => link.Promotion.IsActive &&
+                                    link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                                    link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                                .Max(link => link.Promotion.DiscountPercentage) / 100m)
+                        : item.ProductSize.Product.Price) * item.Quantity))
             .ToListAsync(cancellationToken);
 
         return new CartResponse(

@@ -53,4 +53,6 @@ public UserDeliveryAddress? DeliveryAddress { get; set; }
     public ICollection<ProductReview> Reviews { get; set; } = [];
 
     public ICollection<UserNotification> Notifications { get; set; } = [];
+    public ICollection<PromotionEmailDelivery> PromotionEmailDeliveries { get; set; } = [];
+    public ICollection<Order> Orders { get; set; } = [];
 }

@@ -18,6 +18,8 @@ public sealed record AdminProductResponse(
     string Slug,
     string Description,
     decimal Price,
+    decimal? SalePrice,
+    decimal? DiscountPercentage,
     string ImageUrl,
     string OriginalImageUrl,
     string? AiMaskImageUrl,

@@ -357,9 +357,12 @@ const displayedImage =
             </span>
           </div>
 
-          <strong className="product-details-price">
-            ${Number(product.price).toFixed(2)}
-          </strong>
+          <div className="promotion-price-row">
+            <strong className="product-details-price">
+              ${Number(product.salePrice ?? product.price).toFixed(2)}
+            </strong>
+            {product.salePrice != null ? <><del>${Number(product.price).toFixed(2)}</del><span>-{Number(product.discountPercentage).toFixed(0)}%</span></> : null}
+          </div>
 
           <p className="product-details-description">
             {product.description}

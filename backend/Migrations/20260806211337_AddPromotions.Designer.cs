@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VirtualTryOn.Api.Data;
 
@@ -11,9 +12,11 @@ using VirtualTryOn.Api.Data;
 namespace VirtualTryOn.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806211337_AddPromotions")]
+    partial class AddPromotions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -127,122 +130,6 @@ namespace VirtualTryOn.Api.Migrations
                     b.ToTable("Favorites", (string)null);
                 });
 
-            modelBuilder.Entity("VirtualTryOn.Api.Models.Order", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal>("DeliveryFee")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("OrderNumber")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<decimal>("Subtotal")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal>("Total")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("TrackingNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderNumber")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders", (string)null);
-                });
-
-            modelBuilder.Entity("VirtualTryOn.Api.Models.OrderItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ColorName")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<decimal>("LineTotal")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("OriginalUnitPrice")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<Guid?>("ProductColorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ProductName")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("nvarchar(160)");
-
-                    b.Property<Guid>("ProductSizeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SizeName")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("ProductColorId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("ProductSizeId");
-
-                    b.ToTable("OrderItems", (string)null);
-                });
-
             modelBuilder.Entity("VirtualTryOn.Api.Models.PasswordResetToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -282,9 +169,6 @@ namespace VirtualTryOn.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AiMaskImageUrl")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Badge")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
@@ -319,10 +203,6 @@ namespace VirtualTryOn.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
-
-                    b.Property<string>("OriginalImageUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(10, 2)
@@ -367,10 +247,6 @@ namespace VirtualTryOn.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -871,51 +747,6 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("VirtualTryOn.Api.Models.Order", b =>
-                {
-                    b.HasOne("VirtualTryOn.Api.Models.User", "User")
-                        .WithMany("Orders")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("VirtualTryOn.Api.Models.OrderItem", b =>
-                {
-                    b.HasOne("VirtualTryOn.Api.Models.Order", "Order")
-                        .WithMany("Items")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VirtualTryOn.Api.Models.ProductColor", "ProductColor")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("ProductColorId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("VirtualTryOn.Api.Models.Product", "Product")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VirtualTryOn.Api.Models.ProductSize", "ProductSize")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("ProductSizeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("ProductColor");
-
-                    b.Navigation("ProductSize");
-                });
-
             modelBuilder.Entity("VirtualTryOn.Api.Models.PasswordResetToken", b =>
                 {
                     b.HasOne("VirtualTryOn.Api.Models.User", "User")
@@ -1107,18 +938,11 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("VirtualTryOn.Api.Models.Order", b =>
-                {
-                    b.Navigation("Items");
-                });
-
             modelBuilder.Entity("VirtualTryOn.Api.Models.Product", b =>
                 {
                     b.Navigation("Colors");
 
                     b.Navigation("Favorites");
-
-                    b.Navigation("OrderItems");
 
                     b.Navigation("Promotions");
 
@@ -1132,15 +956,11 @@ namespace VirtualTryOn.Api.Migrations
             modelBuilder.Entity("VirtualTryOn.Api.Models.ProductColor", b =>
                 {
                     b.Navigation("CartItems");
-
-                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.ProductSize", b =>
                 {
                     b.Navigation("CartItems");
-
-                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.Promotion", b =>
@@ -1161,8 +981,6 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("FitProfile");
 
                     b.Navigation("Notifications");
-
-                    b.Navigation("Orders");
 
                     b.Navigation("PasswordResetTokens");
 

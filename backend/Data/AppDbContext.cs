@@ -40,6 +40,12 @@ public DbSet<UserDeliveryAddress> UserDeliveryAddresses =>
     public DbSet<ProductSize> ProductSizes =>
         Set<ProductSize>();
 
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<PromotionProduct> PromotionProducts => Set<PromotionProduct>();
+    public DbSet<PromotionEmailDelivery> PromotionEmailDeliveries => Set<PromotionEmailDelivery>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
         public DbSet<CartItem> CartItems =>
     Set<CartItem>();
 
@@ -79,6 +85,82 @@ ConfigureUserDeliveryAddress(modelBuilder);
         ConfigureFavorite(modelBuilder);
         ConfigureProductColor(modelBuilder);
         ConfigureProductSize(modelBuilder);
+        ConfigurePromotion(modelBuilder);
+        ConfigureOrder(modelBuilder);
+    }
+
+    private static void ConfigureOrder(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.ToTable("Orders");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.OrderNumber).HasMaxLength(30).IsRequired();
+            entity.Property(item => item.Status).HasMaxLength(30).IsRequired();
+            entity.Property(item => item.Subtotal).HasPrecision(10, 2);
+            entity.Property(item => item.DeliveryFee).HasPrecision(10, 2);
+            entity.Property(item => item.Total).HasPrecision(10, 2);
+            entity.Property(item => item.TrackingNumber).HasMaxLength(100);
+            entity.HasIndex(item => item.OrderNumber).IsUnique();
+            entity.HasOne(item => item.User).WithMany(user => user.Orders)
+                .HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.ToTable("OrderItems");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.ProductName).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.ImageUrl).HasMaxLength(2048).IsRequired();
+            entity.Property(item => item.SizeName).HasMaxLength(30).IsRequired();
+            entity.Property(item => item.ColorName).HasMaxLength(60);
+            entity.Property(item => item.OriginalUnitPrice).HasPrecision(10, 2);
+            entity.Property(item => item.UnitPrice).HasPrecision(10, 2);
+            entity.Property(item => item.LineTotal).HasPrecision(10, 2);
+            entity.HasOne(item => item.Order).WithMany(order => order.Items)
+                .HasForeignKey(item => item.OrderId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(item => item.Product).WithMany(product => product.OrderItems)
+                .HasForeignKey(item => item.ProductId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(item => item.ProductSize).WithMany(size => size.OrderItems)
+                .HasForeignKey(item => item.ProductSizeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(item => item.ProductColor).WithMany(color => color.OrderItems)
+                .HasForeignKey(item => item.ProductColorId).OnDelete(DeleteBehavior.NoAction);
+        });
+    }
+
+    private static void ConfigurePromotion(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Promotion>(entity =>
+        {
+            entity.ToTable("Promotions");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Name).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.DiscountPercentage).HasPrecision(5, 2);
+            entity.Property(item => item.CreatedAt).IsRequired();
+        });
+
+        modelBuilder.Entity<PromotionProduct>(entity =>
+        {
+            entity.ToTable("PromotionProducts");
+            entity.HasKey(item => new { item.PromotionId, item.ProductId });
+            entity.HasOne(item => item.Promotion).WithMany(item => item.Products)
+                .HasForeignKey(item => item.PromotionId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(item => item.Product).WithMany(item => item.Promotions)
+                .HasForeignKey(item => item.ProductId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PromotionEmailDelivery>(entity =>
+        {
+            entity.ToTable("PromotionEmailDeliveries");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Email).HasMaxLength(254).IsRequired();
+            entity.Property(item => item.ErrorMessage).HasMaxLength(1000);
+            entity.HasIndex(item => new { item.PromotionId, item.UserId }).IsUnique();
+            entity.HasOne(item => item.Promotion).WithMany(item => item.EmailDeliveries)
+                .HasForeignKey(item => item.PromotionId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(item => item.User).WithMany(item => item.PromotionEmailDeliveries)
+                .HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private static void ConfigureUser(
