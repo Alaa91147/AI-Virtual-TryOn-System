@@ -5,6 +5,8 @@ using VirtualTryOn.Api.Models;
 
 namespace VirtualTryOn.Api.Services;
 
+public enum DeleteProductStatus { Deleted, NotFound, HasOrderHistory }
+
 public class AdminProductService(
     AppDbContext dbContext,
     IWebHostEnvironment environment)
@@ -118,6 +120,27 @@ public class AdminProductService(
         return await GetByIdAsync(product.Id, cancellationToken);
     }
 
+    public async Task<DeleteProductStatus> DeleteAsync(
+        Guid productId, CancellationToken cancellationToken)
+    {
+        var product = await dbContext.Products
+            .SingleOrDefaultAsync(item => item.Id == productId, cancellationToken);
+        if (product is null) return DeleteProductStatus.NotFound;
+
+        if (await dbContext.OrderItems.AnyAsync(
+                item => item.ProductId == productId, cancellationToken))
+            return DeleteProductStatus.HasOrderHistory;
+
+        var cartItems = await dbContext.CartItems
+            .Where(item => item.ProductSize.ProductId == productId ||
+                           (item.ProductColor != null && item.ProductColor.ProductId == productId))
+            .ToListAsync(cancellationToken);
+        dbContext.CartItems.RemoveRange(cartItems);
+        dbContext.Products.Remove(product);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return DeleteProductStatus.Deleted;
+    }
+
     private async Task<bool> IsRequestValidAsync(
         SaveAdminProductRequest request,
         Guid? productId,
@@ -151,18 +174,28 @@ public class AdminProductService(
             .Include(product => product.Category)
             .Include(product => product.Colors)
             .Include(product => product.Sizes)
+            .Include(product => product.Promotions)
+            .ThenInclude(link => link.Promotion)
             .AsSplitQuery();
 
-    private static AdminProductResponse ToResponse(Product product) =>
-        new(
-            product.Id,
-            product.CategoryId,
-            product.Category.Name,
-            product.Category.Audience,
-            product.Name,
-            product.Slug,
+    private static AdminProductResponse ToResponse(Product product)
+    {
+        var promotion = product.Promotions
+            .Where(link => link.Promotion.IsActive &&
+                link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+            .OrderByDescending(link => link.Promotion.DiscountPercentage)
+            .Select(link => link.Promotion)
+            .FirstOrDefault();
+
+        return new(
+            product.Id, product.CategoryId, product.Category.Name,
+            product.Category.Audience, product.Name, product.Slug,
             product.Description,
             product.Price,
+            promotion is null ? null : decimal.Round(
+                product.Price * (1m - promotion.DiscountPercentage / 100m), 2),
+            promotion?.DiscountPercentage,
             product.ImageUrl,
             string.IsNullOrWhiteSpace(product.OriginalImageUrl)
                 ? product.ImageUrl
@@ -171,8 +204,7 @@ public class AdminProductService(
             product.Badge,
             product.IsNew,
             product.IsActive,
-            product.Colors
-                .OrderBy(color => color.Name)
+            product.Colors.OrderBy(color => color.Name)
                 .Select(color => new AdminProductColorResponse(
                     color.Id,
                     color.Name,
@@ -182,10 +214,8 @@ public class AdminProductService(
             product.Sizes
                 .OrderBy(size => size.Name)
                 .Select(size => new AdminProductSizeResponse(
-                    size.Id,
-                    size.Name,
-                    size.StockQuantity))
-                .ToList());
+                    size.Id, size.Name, size.StockQuantity)).ToList());
+    }
 
     private static List<ProductColor> CleanColors(
         SaveAdminProductRequest request) =>

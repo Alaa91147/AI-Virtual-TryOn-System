@@ -7,11 +7,13 @@ import {
   ShieldCheck,
   ShoppingBag,
   Trash2,
+  CheckCircle2,
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext.jsx';
 import { cartService } from '../services/cartService.js';
 import { getErrorMessage } from '../services/authService.js';
+import { orderService } from '../services/orderService.js';
 
 const emptyCart = {
   items: [],
@@ -29,6 +31,8 @@ export default function CartPage() {
   const [clearing, setClearing] =
     useState(false);
   const [error, setError] = useState('');
+  const [ordering, setOrdering] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +148,17 @@ export default function CartPage() {
     }
   }
 
+  async function placeOrder() {
+    if (!window.confirm(`Place this order for $${Number(cart.subtotal).toFixed(2)}?`)) return;
+    try {
+      setOrdering(true); setError('');
+      const order = await orderService.checkout(token);
+      setPlacedOrder(order); setCart(emptyCart);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Could not place your order.'));
+    } finally { setOrdering(false); }
+  }
+
   if (loading) {
     return (
       <main className="cart-state">
@@ -151,6 +166,15 @@ export default function CartPage() {
         <p>Loading your bag...</p>
       </main>
     );
+  }
+
+  if (placedOrder) {
+    return <main className="cart-page"><section className="cart-empty order-success">
+      <span><CheckCircle2 size={42}/></span><p className="cart-eyebrow">Order confirmed</p>
+      <h1>Thank you for your order</h1><p>Your order <strong>{placedOrder.orderNumber}</strong> has been received and is currently pending.</p>
+      <strong className="order-success-total">${Number(placedOrder.total).toFixed(2)}</strong>
+      <Link to="/shop">Continue shopping</Link>
+    </section></main>;
   }
 
   if (!cart.items.length) {
@@ -388,12 +412,10 @@ export default function CartPage() {
             checkout.
           </p>
 
-          <Link
-            className="cart-summary-shopping"
-            to="/shop"
-          >
-            Continue Shopping
-          </Link>
+          <button className="cart-summary-shopping cart-place-order" type="button" onClick={placeOrder} disabled={ordering}>
+            {ordering ? 'Placing order…' : 'Place order'}
+          </button>
+          <Link className="cart-summary-continue" to="/shop">Continue shopping</Link>
 
           <div className="cart-secure">
             <ShieldCheck size={19} />

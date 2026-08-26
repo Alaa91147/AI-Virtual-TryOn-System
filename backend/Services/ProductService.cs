@@ -154,7 +154,9 @@ public class ProductService(
             .Include(product =>
                 product.Sizes)
             .Include(product =>
-                product.Favorites);
+                product.Favorites)
+            .Include(product => product.Promotions)
+            .ThenInclude(link => link.Promotion);
     }
 
     private static ShopProductResponse
@@ -162,6 +164,14 @@ public class ProductService(
             Product product,
             Guid userId)
     {
+        var activePromotion = product.Promotions
+            .Where(link => link.Promotion.IsActive &&
+                link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+            .OrderByDescending(link => link.Promotion.DiscountPercentage)
+            .Select(link => link.Promotion)
+            .FirstOrDefault();
+
         return new ShopProductResponse(
             product.Id,
             product.CategoryId,
@@ -172,6 +182,9 @@ public class ProductService(
             product.Slug,
             product.Description,
             product.Price,
+            activePromotion is null ? null : decimal.Round(
+                product.Price * (1m - activePromotion.DiscountPercentage / 100m), 2),
+            activePromotion?.DiscountPercentage,
             product.ImageUrl,
             product.Badge,
             product.Rating,

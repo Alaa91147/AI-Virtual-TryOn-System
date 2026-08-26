@@ -14,6 +14,9 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import ProductDetailsPage from './pages/ProductDetailsPage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import AdminProductsPage from './pages/AdminProductsPage.jsx';
+import AdminPromotionsPage from './pages/AdminPromotionsPage.jsx';
+import AdminOrdersPage from './pages/AdminOrdersPage.jsx';
+import AdminCustomersPage from './pages/AdminCustomersPage.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import CustomerRoute from './routes/CustomerRoute.jsx';
@@ -99,6 +102,10 @@ export default function App() {
             </AdminRoute>
           }
         />
+
+        <Route path="/admin/promotions" element={<AdminRoute><AdminPromotionsPage /></AdminRoute>} />
+        <Route path="/admin/orders" element={<AdminRoute><AdminOrdersPage /></AdminRoute>} />
+        <Route path="/admin/customers" element={<AdminRoute><AdminCustomersPage /></AdminRoute>} />
 
         <Route
           path="*"

@@ -579,12 +579,24 @@ export default function AdminProductsPage() {
   }
   function archive(product) { setProducts((current) => current.map((item) => item.id === product.id ? { ...item, archived: true, isActive: false } : item)); setMenu(null); notify('Product archived'); }
   function restore(product) { setProducts((current) => current.map((item) => item.id === product.id ? { ...item, archived: false, isActive: true } : item)); setMenu(null); notify('Product restored'); }
+  async function deleteProduct(product) {
+    if (!window.confirm(`Permanently delete "${product.name}"? This action cannot be undone.`)) return;
+    try {
+      setError('');
+      setMenu(null);
+      await adminProductService.delete(token, product.id);
+      setProducts((current) => current.filter((item) => item.id !== product.id));
+      notify('Product permanently deleted');
+    } catch (deleteError) {
+      setError(getErrorMessage(deleteError, 'The product could not be deleted.'));
+    }
+  }
 
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <Link className="admin-brand" to="/shop"><span>V</span><div>VIRTUAL<strong>TRY-ON</strong></div></Link>
-        <nav><small>WORKSPACE</small><Link to="/shop"><LayoutDashboard size={19} /> Dashboard</Link><a className="is-active"><ShoppingBag size={19} /> Products <b>{products.length}</b></a><a><Box size={19} /> Orders</a><a><Users size={19} /> Customers</a><small>MANAGE</small><a><SlidersHorizontal size={19} /> Categories</a><a><CircleDollarSign size={19} /> Promotions</a><a><Settings size={19} /> Settings</a></nav>
+        <nav><small>WORKSPACE</small><Link to="/shop"><LayoutDashboard size={19} /> Dashboard</Link><a className="is-active"><ShoppingBag size={19} /> Products <b>{products.length}</b></a><Link to="/admin/orders"><Box size={19} /> Orders</Link><Link to="/admin/customers"><Users size={19} /> Customers</Link><small>MANAGE</small><a><SlidersHorizontal size={19} /> Categories</a><Link to="/admin/promotions"><CircleDollarSign size={19} /> Promotions</Link><a><Settings size={19} /> Settings</a></nav>
         <div className="admin-account"><div>{user?.fullName?.slice(0, 2).toUpperCase() || 'AD'}</div><span><strong>{user?.fullName || 'Admin User'}</strong><small>{user?.email || 'admin@atelier.com'}</small></span><MoreHorizontal size={18} /></div>
       </aside>
 
@@ -607,17 +619,18 @@ export default function AdminProductsPage() {
             </div>
             <div className="admin-table-wrap">
               <table className="admin-products-table">
-                <thead><tr><th>Product</th><th>Category</th><th>Inventory</th><th>Price</th><th>Status</th><th /></tr></thead>
+                <thead><tr><th>Product</th><th>Category</th><th>Inventory</th><th>Price</th><th>Sale price</th><th>Status</th><th /></tr></thead>
                 <tbody>
-                  {loading ? <tr><td colSpan="6" className="admin-empty">Loading catalog…</td></tr> : filtered.length === 0 ? <tr><td colSpan="6" className="admin-empty">No products match this view.</td></tr> : filtered.map((product) => {
+                  {loading ? <tr><td colSpan="7" className="admin-empty">Loading catalog…</td></tr> : filtered.length === 0 ? <tr><td colSpan="7" className="admin-empty">No products match this view.</td></tr> : filtered.map((product) => {
                     const inventory = stockOf(product);
                     return <tr key={product.id}>
                       <td><div className="admin-product-cell"><div className="admin-product-thumb">{product.imageUrl ? <img src={product.imageUrl} alt="" /> : <ImagePlus size={20} />}</div><span><strong>{product.name}</strong><small>/{product.slug}</small><i>{product.colors?.slice(0, 4).map((color) => <b key={color.name} style={{ background: color.hexCode }} title={color.name} />)}{product.colors?.length ? <em>{product.colors.length} colors</em> : null}</i></span></div></td>
                       <td><strong>{product.categoryName || 'Uncategorized'}</strong><small>{product.audience}</small></td>
                       <td><strong>{inventory} in stock</strong><small className={inventory < 6 ? 'is-low' : ''}>{inventory < 6 ? 'Low inventory' : `${product.sizes?.length || 0} sizes`}</small></td>
                       <td><strong>${Number(product.price).toFixed(2)}</strong>{product.badge && <small>{product.badge}</small>}</td>
+                      <td>{product.salePrice != null ? <><strong className="admin-sale-price">${Number(product.salePrice).toFixed(2)}</strong><small>{Number(product.discountPercentage).toFixed(0)}% off</small></> : <span className="admin-no-sale">—</span>}</td>
                       <td><span className={`admin-status ${product.archived ? 'is-archived' : product.isActive ? 'is-active' : 'is-hidden'}`}><i />{product.archived ? 'Archived' : product.isActive ? 'Active' : 'Inactive'}</span></td>
-                      <td className="admin-menu-cell"><button onClick={() => setMenu(menu === product.id ? null : product.id)}><MoreHorizontal size={19} /></button>{menu === product.id && <div className="admin-row-menu"><button onClick={() => { setDraft({ ...product, originalImageUrl: product.originalImageUrl || product.imageUrl, audience: normalizeAudience(product.audience), imageFiles: [], salePrice: product.salePrice || '' }); setMenu(null); }}><Pencil size={15} /> Edit product</button><Link to={`/shop/products/${product.id}`}><Eye size={15} /> Preview page</Link>{product.archived ? <button onClick={() => restore(product)}><RefreshCcw size={15} /> Restore</button> : <button className="is-danger" onClick={() => archive(product)}><Archive size={15} /> Archive</button>}</div>}</td>
+                      <td className="admin-menu-cell"><button onClick={() => setMenu(menu === product.id ? null : product.id)}><MoreHorizontal size={19} /></button>{menu === product.id && <div className="admin-row-menu"><button onClick={() => { setDraft({ ...product, originalImageUrl: product.originalImageUrl || product.imageUrl, audience: normalizeAudience(product.audience), imageFiles: [], salePrice: product.salePrice || '' }); setMenu(null); }}><Pencil size={15} /> Edit product</button><Link to={`/shop/products/${product.id}`}><Eye size={15} /> Preview page</Link>{product.archived ? <button onClick={() => restore(product)}><RefreshCcw size={15} /> Restore</button> : <button className="is-danger" onClick={() => archive(product)}><Archive size={15} /> Archive</button>}<button className="is-danger" onClick={() => deleteProduct(product)}><Trash2 size={15} /> Delete permanently</button></div>}</td>
                     </tr>;
                   })}
                 </tbody>

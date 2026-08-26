@@ -16,4 +16,5 @@ public class ProductColor
     public Product Product { get; set; } = null!;
 
     public ICollection<CartItem> CartItems { get; set; } = [];
+    public ICollection<OrderItem> OrderItems { get; set; } = [];
 }

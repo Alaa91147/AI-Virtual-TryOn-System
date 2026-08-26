@@ -78,6 +78,9 @@ builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<ProductReviewService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AdminProductService>();
+builder.Services.AddScoped<PromotionService>();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<AdminCustomerService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 var jwtSecret = Encoding.UTF8.GetBytes(jwtOptions.Secret);

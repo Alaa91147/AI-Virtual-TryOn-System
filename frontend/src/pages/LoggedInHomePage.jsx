@@ -156,9 +156,12 @@ function ProductCard({
   </Link>
 </h3>          </div>
 
-          <strong>
-            ${Number(product.price).toFixed(2)}
+          <strong className={product.salePrice != null ? 'sale-price' : ''}>
+            ${Number(product.salePrice ?? product.price).toFixed(2)}
           </strong>
+          {product.salePrice != null ? (
+            <small className="original-price">${Number(product.price).toFixed(2)}</small>
+          ) : null}
         </div>
 
         <div

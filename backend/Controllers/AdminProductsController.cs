@@ -85,4 +85,19 @@ public class AdminProductsController(
                        $"/uploads/products/{fileName}";
         return Ok(new { imageUrl });
     }
+
+    [HttpDelete("{productId:guid}")]
+    public async Task<IActionResult> Delete(
+        Guid productId, CancellationToken cancellationToken)
+    {
+        var result = await productService.DeleteAsync(productId, cancellationToken);
+        return result switch
+        {
+            DeleteProductStatus.Deleted => NoContent(),
+            DeleteProductStatus.NotFound => NotFound(ApiError.Create("Product not found.")),
+            _ => Conflict(ApiError.Create(
+                "This product cannot be permanently deleted.",
+                "It appears in customer order history. Archive it instead."))
+        };
+    }
 }

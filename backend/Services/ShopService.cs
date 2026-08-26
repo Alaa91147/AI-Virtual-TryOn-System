@@ -104,6 +104,22 @@ public class ShopService(
                         product.Slug,
                         product.Description,
                         product.Price,
+                        product.Promotions.Any(link =>
+                            link.Promotion.IsActive &&
+                            link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                            link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                            ? product.Price * (1m - product.Promotions
+                                .Where(link => link.Promotion.IsActive &&
+                                    link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                                    link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                                .Max(link => link.Promotion.DiscountPercentage) / 100m)
+                            : null,
+                        product.Promotions
+                            .Where(link => link.Promotion.IsActive &&
+                                link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
+                                link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
+                            .Select(link => (decimal?)link.Promotion.DiscountPercentage)
+                            .Max(),
                         product.ImageUrl,
                         product.Badge,
                        product.Rating,

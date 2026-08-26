@@ -6047,6 +6047,17 @@ a:hover {
   }
 }
 
+.sale-price { color: #9a7b4f; }
+.original-price { margin-left: 7px; color: #8d877e; text-decoration: line-through; }
+.promotion-price-row { display: flex; align-items: center; gap: 12px; }
+.promotion-price-row del { color: #8d877e; font-size: 1rem; }
+.promotion-price-row span { padding: 5px 8px; border-radius: 999px; background: #efe7dc; color: #8a6738; font-size: .78rem; font-weight: 800; }
+.cart-place-order { width: 100%; border: 0; cursor: pointer; }
+.cart-place-order:disabled { opacity: .6; cursor: wait; }
+.cart-summary-continue { margin-top: 12px; display: block; color: #6d6961; text-align: center; font-size: .9rem; font-weight: 700; }
+.order-success { max-width: 760px; margin: 90px auto; }
+.order-success-total { display: block; margin: -10px 0 24px; font: 600 30px Georgia,serif; color: #9a7b4f; }
+
 /* Admin product management */
 .admin-shell { --admin-ink:#171915; --admin-muted:#74776e; --admin-border:#e6e7e1; --admin-green:#285847; min-height:100vh; display:grid; grid-template-columns:244px minmax(0,1fr); background:#f6f7f4; color:var(--admin-ink); font-family:Inter,"Segoe UI",sans-serif; }
 .admin-sidebar { position:sticky; top:0; height:100vh; padding:28px 18px 22px; display:flex; flex-direction:column; background:#151c19; color:#e9eee9; z-index:30; }
@@ -6723,6 +6734,8 @@ a:hover {
 .order-history-button {
   margin-top: auto;
 }
+
+.profile-latest-order{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center;padding:12px 0}.profile-latest-order>span{display:grid;gap:4px}.profile-latest-order small{color:#8a847b;font-size:11px}.profile-latest-order>strong{font:600 17px Georgia,serif}.profile-order-status{display:inline-flex;align-items:center;justify-content:center;width:max-content;padding:5px 9px;border-radius:14px;background:#f1ece3;color:#84673f;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}.profile-order-status.status-delivered{background:#e7f1ea;color:#39705a}.profile-order-status.status-cancelled{background:#f7e9e7;color:#98524a}.order-history-error{color:#a4483d}.profile-orders-backdrop{position:fixed;inset:0;z-index:1000;padding:30px;display:grid;place-items:center;background:rgba(20,18,15,.62)}.profile-orders-modal{width:min(780px,100%);max-height:min(820px,90vh);display:flex;flex-direction:column;border:1px solid #ddd3c5;border-radius:14px;background:#f8f5ef;box-shadow:0 28px 80px rgba(0,0,0,.3);overflow:hidden}.profile-orders-header{padding:25px 28px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #ded6ca;background:#fff}.profile-orders-header h2{margin:4px 0;font:500 31px Georgia,serif}.profile-orders-header p{margin:0;color:#7e776e;font-size:12px}.profile-orders-list{padding:20px;display:grid;gap:14px;overflow:auto}.profile-order{border:1px solid #ded6ca;border-radius:9px;background:#fff;overflow:hidden}.profile-order>header,.profile-order>footer{padding:14px 17px;display:flex;align-items:center;justify-content:space-between;gap:15px}.profile-order>header{border-bottom:1px solid #ece6dc}.profile-order>header>div{display:grid;gap:4px}.profile-order>header small{color:#8a847b;font-size:10px}.profile-order-items{padding:9px 17px}.profile-order-items>div{padding:8px 0;display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:11px;border-bottom:1px solid #f0ebe3}.profile-order-items>div:last-child{border-bottom:0}.profile-order-items img{width:48px;height:54px;border-radius:5px;object-fit:cover;background:#eeeae3}.profile-order-items span{display:grid;gap:4px}.profile-order-items small{color:#837c72;font-size:10px}.profile-order-items b{font-size:12px}.profile-order>footer{border-top:1px solid #ece6dc;background:#faf8f4}.profile-order>footer span{color:#6e675e;font-size:12px}.profile-order>footer strong{font:600 18px Georgia,serif}.profile-orders-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center}.profile-orders-empty p{margin:0 0 8px;color:#7d766d;font-size:12px}.profile-orders-empty .primary-button{min-width:150px}@media(max-width:600px){.profile-orders-backdrop{padding:12px}.profile-orders-header{padding:20px}.profile-orders-list{padding:12px}.profile-order-items>div{grid-template-columns:42px 1fr auto}.profile-order-items img{width:42px;height:48px}}
 
 @media (max-width: 1100px) {
   .profile-grid {

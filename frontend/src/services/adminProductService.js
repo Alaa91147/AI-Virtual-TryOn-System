@@ -45,6 +45,13 @@ export const adminProductService = {
     );
   },
 
+  delete(token, productId) {
+    return request(`/api/admin/products/${encodeURIComponent(productId)}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
   uploadImage(token, file) {
     const body = new FormData();
     body.append('image', file);
