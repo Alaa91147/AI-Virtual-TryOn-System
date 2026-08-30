@@ -6065,10 +6065,20 @@ a:hover {
 .admin-brand>span { width:34px; height:34px; display:grid; place-items:center; border:1px solid #708079; font-family:Georgia,serif; font-size:22px; }
 .admin-brand strong { display:block; color:#b4c3bb; font-size:9px; letter-spacing:.25em; }
 .admin-sidebar nav { display:flex; flex-direction:column; gap:5px; }
+.admin-sidebar .admin-nav-entry { display:contents; }
 .admin-sidebar nav small { margin:24px 12px 8px; color:#728078; font-size:9px; font-weight:800; letter-spacing:.16em; }
 .admin-sidebar nav a { min-height:43px; padding:0 12px; border-radius:7px; display:flex; align-items:center; gap:12px; color:#aeb8b2; font-size:13px; font-weight:600; cursor:pointer; }
 .admin-sidebar nav a:hover,.admin-sidebar nav a.is-active { background:#25332d; color:#fff; }
 .admin-sidebar nav a b { margin-left:auto; padding:2px 7px; border-radius:10px; background:#3b4c45; font-size:10px; }
+.admin-topbar .admin-notifications { margin-left:auto; position:relative; }
+.admin-topbar .admin-notifications + a,
+.admin-topbar .admin-notifications + button { margin-left:8px; }
+.admin-topbar .notification-trigger { width:38px; height:38px; color:#26332d; background:#fff; border:1px solid var(--admin-border); }
+.admin-topbar .notification-panel { top:48px; right:0; z-index:100; }
+.admin-global-notification { position:fixed; top:68px; right:28px; z-index:90; }
+.admin-global-notification .notification-trigger { width:40px; height:40px; color:#26332d; background:#fff; border:1px solid var(--admin-border); box-shadow:0 8px 24px rgba(20,28,24,.12); }
+.admin-global-notification .notification-panel { top:50px; right:0; z-index:110; }
+@media (max-width:720px) { .admin-global-notification { top:66px; right:14px; } }
 .admin-account { margin-top:auto; padding:17px 8px 0; border-top:1px solid #2d3733; display:flex; align-items:center; gap:10px; }
 .admin-account>div { width:35px; height:35px; border-radius:50%; display:grid; place-items:center; background:#d2c1a4; color:#253029; font-size:11px; font-weight:900; }
 .admin-account>span { min-width:0; flex:1; display:grid; gap:2px; }
@@ -6878,4 +6888,432 @@ a:hover {
     width: 16px;
     height: 16px;
   }
+}
+
+/* UNIFIED ADMIN NAVIGATION */
+
+.admin-sidebar .admin-nav-entry {
+  display: contents;
+}
+
+.admin-sidebar-account-area {
+  position: relative;
+  margin-top: auto;
+}
+
+.admin-account {
+  cursor: pointer;
+}
+
+.admin-logout-button {
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #3a4741;
+  border-radius: 7px;
+  color: #c5cec9;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.admin-logout-button:hover {
+  color: #ffffff;
+  border-color: #82534f;
+  background: #633b38;
+}
+
+.admin-account-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 10px);
+  padding: 14px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid #3b4842;
+  border-radius: 8px;
+  background: #202a26;
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.admin-account-menu strong {
+  color: #ffffff;
+  font-size: 11px;
+}
+
+.admin-account-menu small {
+  overflow: hidden;
+  color: #87948d;
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.admin-account-menu button {
+  margin-top: 8px;
+  min-height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #5a403d;
+  border-radius: 6px;
+  color: #ffffff;
+  background: #633b38;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-mobile-menu,
+.admin-sidebar-close,
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .admin-mobile-menu {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 145;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #ded8cf;
+    border-radius: 8px;
+    color: #27332d;
+    background: #ffffff;
+    box-shadow:
+      0 7px 20px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+  }
+
+  .admin-sidebar.is-mobile-open {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 160;
+    width: min(290px, 86vw);
+    display: flex;
+  }
+
+  .admin-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 155;
+    display: block;
+    border: 0;
+    background: rgba(10, 15, 12, 0.55);
+  }
+
+  .admin-sidebar-close {
+    position: absolute;
+    top: 15px;
+    right: 13px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #38443f;
+    border-radius: 7px;
+    color: #ffffff;
+    background: #202a26;
+    cursor: pointer;
+  }
+
+  .admin-topbar {
+    padding-left: 65px;
+  }
+}
+
+/* One consistent admin notification bell */
+.admin-sidebar {
+  position: fixed;
+}
+
+.admin-sidebar .admin-sidebar-notifications {
+  position: absolute;
+  z-index: 1400;
+  top: 38px;
+  right: 18px;
+  display: block;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.admin-sidebar .admin-notifications,
+.admin-sidebar .notification-dropdown {
+  position: relative;
+}
+
+.admin-sidebar .notification-trigger {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  color: #ddd7ce;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px;
+}
+
+.admin-sidebar .notification-trigger:hover,
+.admin-sidebar
+  .notification-trigger[aria-expanded="true"] {
+  color: #fff;
+  background: #342f29;
+  border-color: #9a7b4f;
+}
+
+.admin-sidebar .notification-trigger > span {
+  top: -6px;
+  right: -6px;
+  border-color: #171717;
+}
+
+.admin-sidebar .notification-panel {
+  position: absolute;
+  z-index: 1500;
+  top: -6px;
+  right: auto;
+  left: calc(100% + 16px);
+  width: min(390px, calc(100vw - 340px));
+  max-height: min(620px, calc(100vh - 40px));
+  overflow-y: auto;
+}
+
+.admin-sidebar .notification-panel::before {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .admin-sidebar .notification-panel {
+    position: fixed;
+    top: 72px;
+    right: 14px;
+    left: 14px;
+    width: auto;
+    max-height: calc(100vh - 90px);
+  }
+}
+
+/* Restore admin grid layout */
+.admin-shell > .admin-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+/* Final consistent sidebar bell override */
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications {
+  position: absolute !important;
+  z-index: 1500 !important;
+  top: 38px !important;
+  right: 18px !important;
+  bottom: auto !important;
+  left: auto !important;
+  display: block !important;
+  width: 40px !important;
+  height: 40px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .admin-notifications,
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .notification-dropdown {
+  position: relative !important;
+  display: block !important;
+  width: 40px !important;
+  height: 40px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .notification-trigger {
+  position: relative !important;
+  display: grid !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  place-items: center !important;
+  color: #f1ece4 !important;
+  background: #262522 !important;
+  border: 1px solid #4c4841 !important;
+  border-radius: 9px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .notification-trigger:hover,
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .notification-trigger[aria-expanded="true"] {
+  color: #fff !important;
+  background: #3a342d !important;
+  border-color: #a88451 !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .notification-panel {
+  position: absolute !important;
+  z-index: 1600 !important;
+  top: -6px !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: 56px !important;
+  display: block;
+  width: 390px !important;
+  height: auto !important;
+  max-height: calc(100vh - 45px) !important;
+  overflow-y: auto !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications {
+  top: 58px !important;
+}
+
+/* Final admin notification clipping correction */
+.admin-shell > .admin-sidebar {
+  overflow: visible !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications {
+  top: 70px !important;
+  right: 18px !important;
+}
+
+.admin-shell > .admin-sidebar
+  .admin-sidebar-notifications
+  .notification-panel {
+  top: 0 !important;
+  right: auto !important;
+  left: 56px !important;
+  width: min(390px, calc(100vw - 340px)) !important;
+  max-height: calc(100vh - 90px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: #ffffff !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.22) !important;
+}
+
+@media (max-width: 700px) {
+  .admin-shell > .admin-sidebar
+    .admin-sidebar-notifications
+    .notification-panel {
+    position: fixed !important;
+    top: 70px !important;
+    right: 14px !important;
+    left: 14px !important;
+    width: auto !important;
+    max-height: calc(100vh - 90px) !important;
+  }
+}
+
+/* Universal shared admin notification bell */
+.admin-sidebar {
+  z-index: 2000 !important;
+  overflow: visible !important;
+}
+
+.admin-sidebar .admin-sidebar-notifications {
+  position: absolute !important;
+  top: 70px !important;
+  right: 20px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 2100 !important;
+  width: 42px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.admin-sidebar .admin-sidebar-notifications,
+.admin-sidebar .admin-notifications,
+.admin-sidebar .notification-dropdown {
+  overflow: visible !important;
+}
+
+.admin-sidebar .admin-notifications,
+.admin-sidebar .notification-dropdown {
+  position: relative !important;
+  width: 42px !important;
+  height: 42px !important;
+}
+
+.admin-sidebar .notification-trigger {
+  position: relative !important;
+  display: grid !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  place-items: center !important;
+  color: #f4efe8 !important;
+  background: #26231f !important;
+  border: 1px solid #554d43 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  appearance: none !important;
+}
+
+.admin-sidebar .notification-trigger svg {
+  display: block !important;
+  width: 21px !important;
+  height: 21px !important;
+  color: currentColor !important;
+  fill: none !important;
+}
+
+.admin-sidebar .notification-panel {
+  position: absolute !important;
+  z-index: 2200 !important;
+  top: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: 58px !important;
+  display: block !important;
+  width: 390px !important;
+  height: auto !important;
+  max-height: calc(100vh - 90px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  color: #171717 !important;
+  background: #fff !important;
+  border: 1px solid #e4ddd3 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.25) !important;
 }

@@ -23,6 +23,12 @@ public class User
     public string Role { get; set; } = UserRoles.Customer;
 
     public bool IsEmailVerified { get; set; }
+    public bool IsSuspended { get; set; }
+
+    public string? SuspensionReason { get; set; }
+
+    public DateTimeOffset? SuspendedUntil { get; set; }
+    public string? AdminNotes { get; set; }
 
 
     public DateOnly? DateOfBirth { get; set; }
@@ -55,4 +61,11 @@ public UserDeliveryAddress? DeliveryAddress { get; set; }
     public ICollection<UserNotification> Notifications { get; set; } = [];
     public ICollection<PromotionEmailDelivery> PromotionEmailDeliveries { get; set; } = [];
     public ICollection<Order> Orders { get; set; } = [];
+
+    public ICollection<EmailVerificationToken>
+        EmailVerificationTokens { get; set; } =
+            new List<EmailVerificationToken>();
 }
+
+
+

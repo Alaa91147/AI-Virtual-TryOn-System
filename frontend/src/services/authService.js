@@ -1,4 +1,4 @@
-const API_BASE_URL =
+﻿const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5113';
 
@@ -155,6 +155,13 @@ export const authService = {
     });
   },
 
+  refresh(refreshToken) {
+    return request('/api/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+  },
+
   me(token) {
     return request('/api/auth/me', {
       method: 'GET',
@@ -185,4 +192,21 @@ export const authService = {
       },
     );
   },
-};
+
+  verifyEmail(token) {
+    return request('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+
+  resendVerification(email) {
+    return request(
+      '/api/auth/resend-verification',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      },
+    );
+  },};
+

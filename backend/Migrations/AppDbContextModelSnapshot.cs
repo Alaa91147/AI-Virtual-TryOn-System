@@ -22,6 +22,49 @@ namespace VirtualTryOn.Api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("VirtualTryOn.Api.Models.AdminAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("AdminAuditLogs", (string)null);
+                });
+
             modelBuilder.Entity("VirtualTryOn.Api.Models.CartItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -35,6 +78,9 @@ namespace VirtualTryOn.Api.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ProductSizeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProductVariantId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Quantity")
@@ -53,6 +99,8 @@ namespace VirtualTryOn.Api.Migrations
                     b.HasIndex("ProductColorId");
 
                     b.HasIndex("ProductSizeId");
+
+                    b.HasIndex("ProductVariantId");
 
                     b.HasIndex("UserId");
 
@@ -109,6 +157,39 @@ namespace VirtualTryOn.Api.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
+            modelBuilder.Entity("VirtualTryOn.Api.Models.EmailVerificationToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "ExpiresAt");
+
+                    b.ToTable("EmailVerificationTokens", (string)null);
+                });
+
             modelBuilder.Entity("VirtualTryOn.Api.Models.Favorite", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -127,6 +208,91 @@ namespace VirtualTryOn.Api.Migrations
                     b.ToTable("Favorites", (string)null);
                 });
 
+            modelBuilder.Entity("VirtualTryOn.Api.Models.InventoryAdjustment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("NewQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreviousQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductSizeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductSizeId");
+
+                    b.ToTable("InventoryAdjustments", (string)null);
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.LoginAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("Succeeded")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(600)
+                        .HasColumnType("nvarchar(600)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("LoginAttempts", (string)null);
+                });
+
             modelBuilder.Entity("VirtualTryOn.Api.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -140,10 +306,16 @@ namespace VirtualTryOn.Api.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<string>("FulfillmentNotes")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ShippingCarrier")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -218,6 +390,9 @@ namespace VirtualTryOn.Api.Migrations
                     b.Property<Guid>("ProductSizeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -225,6 +400,10 @@ namespace VirtualTryOn.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(10, 2)
@@ -239,6 +418,8 @@ namespace VirtualTryOn.Api.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ProductSizeId");
+
+                    b.HasIndex("ProductVariantId");
 
                     b.ToTable("OrderItems", (string)null);
                 });
@@ -451,6 +632,64 @@ namespace VirtualTryOn.Api.Migrations
                     b.ToTable("ProductSizes", (string)null);
                 });
 
+            modelBuilder.Entity("VirtualTryOn.Api.Models.ProductVariant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("LowStockThreshold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(5);
+
+                    b.Property<Guid>("ProductColorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductSizeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("StockQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductColorId");
+
+                    b.HasIndex("ProductSizeId");
+
+                    b.HasIndex("Sku")
+                        .IsUnique();
+
+                    b.HasIndex("StockQuantity");
+
+                    b.HasIndex("ProductId", "ProductColorId", "ProductSizeId")
+                        .IsUnique();
+
+                    b.ToTable("ProductVariants", (string)null);
+                });
+
             modelBuilder.Entity("VirtualTryOn.Api.Models.Promotion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -597,6 +836,9 @@ namespace VirtualTryOn.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -627,6 +869,9 @@ namespace VirtualTryOn.Api.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsSuspended")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
                         .HasMaxLength(254)
@@ -644,6 +889,12 @@ namespace VirtualTryOn.Api.Migrations
                     b.Property<string>("ShoppingPreference")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTimeOffset?>("SuspendedUntil")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SuspensionReason")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -826,6 +1077,60 @@ namespace VirtualTryOn.Api.Migrations
                     b.ToTable("UserTryOnPhotos", (string)null);
                 });
 
+            modelBuilder.Entity("VirtualTryOn.Api.Models.VariantInventoryAdjustment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("EnteredQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("PreviousQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.ToTable("VariantInventoryAdjustments", (string)null);
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.AdminAuditLog", b =>
+                {
+                    b.HasOne("VirtualTryOn.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VirtualTryOn.Api.Models.CartItem", b =>
                 {
                     b.HasOne("VirtualTryOn.Api.Models.ProductColor", "ProductColor")
@@ -839,6 +1144,11 @@ namespace VirtualTryOn.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("VirtualTryOn.Api.Models.ProductVariant", "ProductVariant")
+                        .WithMany("CartItems")
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("VirtualTryOn.Api.Models.User", "User")
                         .WithMany("CartItems")
                         .HasForeignKey("UserId")
@@ -848,6 +1158,19 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("ProductColor");
 
                     b.Navigation("ProductSize");
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.EmailVerificationToken", b =>
+                {
+                    b.HasOne("VirtualTryOn.Api.Models.User", "User")
+                        .WithMany("EmailVerificationTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -869,6 +1192,39 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.InventoryAdjustment", b =>
+                {
+                    b.HasOne("VirtualTryOn.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VirtualTryOn.Api.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VirtualTryOn.Api.Models.ProductSize", "ProductSize")
+                        .WithMany()
+                        .HasForeignKey("ProductSizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductSize");
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.LoginAttempt", b =>
+                {
+                    b.HasOne("VirtualTryOn.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.Order", b =>
@@ -907,6 +1263,10 @@ namespace VirtualTryOn.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VirtualTryOn.Api.Models.ProductVariant", "ProductVariant")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("ProductVariantId");
+
                     b.Navigation("Order");
 
                     b.Navigation("Product");
@@ -914,6 +1274,8 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("ProductColor");
 
                     b.Navigation("ProductSize");
+
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.PasswordResetToken", b =>
@@ -977,6 +1339,33 @@ namespace VirtualTryOn.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.ProductVariant", b =>
+                {
+                    b.HasOne("VirtualTryOn.Api.Models.ProductColor", "ProductColor")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductColorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("VirtualTryOn.Api.Models.Product", "Product")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VirtualTryOn.Api.Models.ProductSize", "ProductSize")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductSizeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductColor");
+
+                    b.Navigation("ProductSize");
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.PromotionEmailDelivery", b =>
@@ -1102,6 +1491,25 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("VirtualTryOn.Api.Models.VariantInventoryAdjustment", b =>
+                {
+                    b.HasOne("VirtualTryOn.Api.Models.User", "AdminUser")
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VirtualTryOn.Api.Models.ProductVariant", "ProductVariant")
+                        .WithMany("InventoryAdjustments")
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AdminUser");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("VirtualTryOn.Api.Models.Category", b =>
                 {
                     b.Navigation("Products");
@@ -1127,6 +1535,8 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("Reviews");
 
                     b.Navigation("Sizes");
+
+                    b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.ProductColor", b =>
@@ -1134,11 +1544,24 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("OrderItems");
+
+                    b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("VirtualTryOn.Api.Models.ProductSize", b =>
                 {
                     b.Navigation("CartItems");
+
+                    b.Navigation("OrderItems");
+
+                    b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("VirtualTryOn.Api.Models.ProductVariant", b =>
+                {
+                    b.Navigation("CartItems");
+
+                    b.Navigation("InventoryAdjustments");
 
                     b.Navigation("OrderItems");
                 });
@@ -1155,6 +1578,8 @@ namespace VirtualTryOn.Api.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("DeliveryAddress");
+
+                    b.Navigation("EmailVerificationTokens");
 
                     b.Navigation("Favorites");
 

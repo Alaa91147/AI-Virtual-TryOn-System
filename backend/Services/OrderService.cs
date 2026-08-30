@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using VirtualTryOn.Api.Constants;
 using VirtualTryOn.Api.Data;
@@ -9,6 +9,13 @@ namespace VirtualTryOn.Api.Services;
 
 public enum CheckoutStatus { Success, Unauthorized, EmptyCart, OutOfStock }
 public sealed record CheckoutResult(CheckoutStatus Status, OrderResponse? Order = null);
+public enum OrderUpdateStatus
+{
+    Success, NotFound, InvalidStatus, InvalidTransition, TrackingRequired
+}
+public sealed record OrderUpdateResult(
+    OrderUpdateStatus Status,
+    OrderResponse? Order = null);
 
 public class OrderService(AppDbContext dbContext, NotificationService notificationService)
 {
@@ -43,9 +50,48 @@ public class OrderService(AppDbContext dbContext, NotificationService notificati
                 .ThenInclude(product => product.Promotions).ThenInclude(link => link.Promotion)
             .Where(item => item.UserId == userId)
             .ToListAsync(cancellationToken);
-        if (cartItems.Count == 0) return new(CheckoutStatus.EmptyCart);
-        if (cartItems.Any(item => item.Quantity > item.ProductSize.StockQuantity))
-            return new(CheckoutStatus.OutOfStock);
+        if (cartItems.Count == 0)
+            return new(CheckoutStatus.EmptyCart);
+
+        var productIds = cartItems
+            .Select(item => item.ProductSize.ProductId)
+            .Distinct()
+            .ToList();
+
+        var variants = await dbContext.ProductVariants
+            .Where(variant =>
+                productIds.Contains(variant.ProductId) &&
+                variant.IsActive)
+            .ToListAsync(cancellationToken);
+
+        var variantLookup = variants.ToDictionary(
+            variant => (
+                variant.ProductId,
+                variant.ProductColorId,
+                variant.ProductSizeId));
+
+        foreach (var cartItem in cartItems)
+        {
+            if (!cartItem.ProductColorId.HasValue)
+                return new(CheckoutStatus.OutOfStock);
+
+            var key = (
+                cartItem.ProductSize.ProductId,
+                cartItem.ProductColorId.Value,
+                cartItem.ProductSizeId);
+
+            if (!variantLookup.TryGetValue(
+                    key,
+                    out var exactVariant) ||
+                cartItem.Quantity >
+                    exactVariant.StockQuantity)
+            {
+                return new(CheckoutStatus.OutOfStock);
+            }
+
+            cartItem.ProductVariantId =
+                exactVariant.Id;
+        }
 
         var now = DateTimeOffset.UtcNow;
         var order = new Order
@@ -64,16 +110,35 @@ public class OrderService(AppDbContext dbContext, NotificationService notificati
                 .Select(link => link.Promotion.DiscountPercentage)
                 .DefaultIfEmpty(0m).Max();
             var unitPrice = decimal.Round(product.Price * (1m - discount / 100m), 2);
+            var exactVariant = variantLookup[(
+                product.Id,
+                cart.ProductColorId!.Value,
+                cart.ProductSizeId)];
+
             order.Items.Add(new OrderItem
             {
-                ProductId = product.Id, ProductSizeId = cart.ProductSizeId,
-                ProductColorId = cart.ProductColorId, ProductName = product.Name,
-                ImageUrl = product.ImageUrl, SizeName = cart.ProductSize.Name,
-                ColorName = cart.ProductColor?.Name, OriginalUnitPrice = product.Price,
-                UnitPrice = unitPrice, Quantity = cart.Quantity,
+                ProductId = product.Id,
+                ProductSizeId = cart.ProductSizeId,
+                ProductColorId = cart.ProductColorId,
+                ProductVariantId = exactVariant.Id,
+                ProductName = product.Name,
+                ImageUrl =
+                    cart.ProductColor?.ImageUrl ??
+                    product.ImageUrl,
+                SizeName = cart.ProductSize.Name,
+                ColorName = cart.ProductColor?.Name,
+                Sku = exactVariant.Sku,
+                OriginalUnitPrice = product.Price,
+                UnitPrice = unitPrice,
+                Quantity = cart.Quantity,
                 LineTotal = unitPrice * cart.Quantity
             });
-            cart.ProductSize.StockQuantity -= cart.Quantity;
+
+            exactVariant.StockQuantity -=
+                cart.Quantity;
+
+            exactVariant.UpdatedAt =
+                DateTimeOffset.UtcNow;
         }
 
         order.Subtotal = order.Items.Sum(item => item.LineTotal);
@@ -103,29 +168,81 @@ public class OrderService(AppDbContext dbContext, NotificationService notificati
         return orders.Select(ToResponse).ToList();
     }
 
-    public async Task<OrderResponse?> UpdateStatusAsync(
-        Guid id, string status, string? trackingNumber, CancellationToken cancellationToken)
+    public async Task<OrderUpdateResult> UpdateStatusAsync(
+        Guid id, string status, string? trackingNumber, string? shippingCarrier,
+        string? fulfillmentNotes, CancellationToken cancellationToken)
     {
         var normalized = OrderStatuses.All.FirstOrDefault(item =>
             string.Equals(item, status, StringComparison.OrdinalIgnoreCase));
-        if (normalized is null) return null;
+        if (normalized is null) return new(OrderUpdateStatus.InvalidStatus);
+        var order = await dbContext.Orders
+            .Include(item => item.Items)
+                .ThenInclude(item => item.ProductSize)
+            .Include(item => item.Items)
+                .ThenInclude(item => item.ProductVariant)
+            .SingleOrDefaultAsync(
+                item => item.Id == id,
+                cancellationToken);
+        if (order is null) return new(OrderUpdateStatus.NotFound);
 
-        var order = await dbContext.Orders.Include(item => item.Items)
-            .ThenInclude(item => item.ProductSize)
-            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
-        if (order is null || order.Status == OrderStatuses.Cancelled) return null;
+        var cleanedTracking = string.IsNullOrWhiteSpace(trackingNumber)
+            ? null
+            : trackingNumber.Trim();
 
+        if ((normalized == OrderStatuses.Shipped || normalized == OrderStatuses.Delivered)
+            && string.IsNullOrWhiteSpace(cleanedTracking))
+        {
+            return new(OrderUpdateStatus.TrackingRequired);
+        }
+
+        if (!IsAllowedTransition(order.Status, normalized))
+            return new(OrderUpdateStatus.InvalidTransition);
         if (normalized == OrderStatuses.Cancelled)
-            foreach (var item in order.Items) item.ProductSize.StockQuantity += item.Quantity;
+        {
+            foreach (var item in order.Items)
+            {
+                if (item.ProductVariant is not null)
+                {
+                    item.ProductVariant.StockQuantity +=
+                        item.Quantity;
+
+                    item.ProductVariant.UpdatedAt =
+                        DateTimeOffset.UtcNow;
+                }
+                else
+                {
+                    // Compatibility for older orders.
+                    item.ProductSize.StockQuantity +=
+                        item.Quantity;
+                }
+            }
+        }
 
         order.Status = normalized;
-        order.TrackingNumber = string.IsNullOrWhiteSpace(trackingNumber) ? null : trackingNumber.Trim();
+        order.TrackingNumber = cleanedTracking;
+        order.ShippingCarrier = string.IsNullOrWhiteSpace(shippingCarrier) ? null : shippingCarrier.Trim();
+        order.FulfillmentNotes = string.IsNullOrWhiteSpace(fulfillmentNotes) ? null : fulfillmentNotes.Trim();
         order.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
         await notificationService.CreateAsync(order.UserId, $"Order {normalized.ToLowerInvariant()}",
             $"Your order {order.OrderNumber} is now {normalized.ToLowerInvariant()}.",
             "order", "/profile", cancellationToken);
-        return await GetOrderAsync(id, cancellationToken);
+        return new(OrderUpdateStatus.Success, await GetOrderAsync(id, cancellationToken));
+    }
+
+    private static bool IsAllowedTransition(string current, string requested)
+    {
+        if (string.Equals(current, requested, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return current switch
+        {
+            OrderStatuses.Pending => requested is OrderStatuses.Confirmed or OrderStatuses.Cancelled,
+            OrderStatuses.Confirmed => requested is OrderStatuses.Processing or OrderStatuses.Cancelled,
+            OrderStatuses.Processing => requested is OrderStatuses.Shipped or OrderStatuses.Cancelled,
+            OrderStatuses.Shipped => requested == OrderStatuses.Delivered,
+            _ => false
+        };
     }
 
     private IQueryable<Order> GetQuery() => dbContext.Orders.AsNoTracking()
@@ -141,12 +258,23 @@ public class OrderService(AppDbContext dbContext, NotificationService notificati
         order.Id, order.OrderNumber, order.UserId,
         order.User.Profile != null ? order.User.Profile.FullName : order.User.Email,
         order.User.Email, order.Status, order.Subtotal, order.DeliveryFee,
-        order.Total, order.TrackingNumber, order.CreatedAt,
+        order.Total, order.TrackingNumber, order.ShippingCarrier, order.FulfillmentNotes, order.CreatedAt,
         order.Items.Select(item => new OrderItemResponse(
-            item.Id, item.ProductId, item.ProductName, item.ImageUrl,
-            item.SizeName, item.ColorName, item.OriginalUnitPrice,
-            item.UnitPrice, item.Quantity, item.LineTotal)).ToList());
+            item.Id,
+            item.ProductId,
+            item.ProductVariantId,
+            item.ProductName,
+            item.ImageUrl,
+            item.SizeName,
+            item.ColorName,
+            item.Sku,
+            item.OriginalUnitPrice,
+            item.UnitPrice,
+            item.Quantity,
+            item.LineTotal)).ToList());
 
     private static Guid? GetUserId(ClaimsPrincipal principal) =>
         Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 }
+
+

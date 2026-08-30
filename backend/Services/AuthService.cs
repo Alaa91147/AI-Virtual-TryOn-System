@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
@@ -67,50 +67,150 @@ public class AuthService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        await SendVerificationEmailAsync(
+            user.Id,
+            cancellationToken);
         return response;
     }
 
-    public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<AuthResponse?> LoginAsync(
+        LoginRequest request,
+        string? ipAddress,
+        string? userAgent,
+        CancellationToken cancellationToken)
     {
         var normalizedEmail = NormalizeEmail(request.Email);
+        var email = request.Email.Trim();
+        var now = DateTimeOffset.UtcNow;
 
         var user = await UsersWithProfileSections()
-            .SingleOrDefaultAsync(account => account.NormalizedEmail == normalizedEmail, cancellationToken);
+            .SingleOrDefaultAsync(
+                account =>
+                    account.NormalizedEmail == normalizedEmail,
+                cancellationToken);
 
         if (user is null)
         {
+            dbContext.LoginAttempts.Add(new LoginAttempt
+            {
+                UserId = null,
+                Email = email,
+                Succeeded = false,
+                FailureReason = "Unknown account",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                CreatedAt = now
+            });
+
+            await dbContext.SaveChangesAsync(
+                cancellationToken);
+
             return null;
         }
 
-        var verificationResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-        if (verificationResult == PasswordVerificationResult.Failed)
+        var suspensionIsActive =
+            user.IsSuspended &&
+            (user.SuspendedUntil is null ||
+             user.SuspendedUntil > now);
+
+        if (suspensionIsActive)
         {
+            dbContext.LoginAttempts.Add(new LoginAttempt
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Succeeded = false,
+                FailureReason = "Account suspended",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                CreatedAt = now
+            });
+
+            await dbContext.SaveChangesAsync(
+                cancellationToken);
+
             return null;
         }
 
-        if (verificationResult == PasswordVerificationResult.SuccessRehashNeeded)
+        if (user.IsSuspended &&
+            user.SuspendedUntil <= now)
         {
-            user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
-            user.UpdatedAt = DateTimeOffset.UtcNow;
+            user.IsSuspended = false;
+            user.SuspendedUntil = null;
+            user.SuspensionReason = null;
+            user.UpdatedAt = now;
+        }
+
+        var verificationResult =
+            passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                request.Password);
+
+        if (verificationResult ==
+            PasswordVerificationResult.Failed)
+        {
+            dbContext.LoginAttempts.Add(new LoginAttempt
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Succeeded = false,
+                FailureReason = "Invalid credentials",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                CreatedAt = now
+            });
+
+            await dbContext.SaveChangesAsync(
+                cancellationToken);
+
+            return null;
+        }
+
+        if (verificationResult ==
+            PasswordVerificationResult
+                .SuccessRehashNeeded)
+        {
+            user.PasswordHash =
+                passwordHasher.HashPassword(
+                    user,
+                    request.Password);
+
+            user.UpdatedAt = now;
         }
 
         var response = CreateAuthResponse(user);
-        var refreshTokenDays = request.RememberMe
-            ? _jwtOptions.RememberMeRefreshTokenDays
-            : _jwtOptions.RefreshTokenDays;
+
+        var refreshTokenDays =
+            request.RememberMe
+                ? _jwtOptions
+                    .RememberMeRefreshTokenDays
+                : _jwtOptions.RefreshTokenDays;
 
         dbContext.RefreshTokens.Add(new RefreshToken
         {
             UserId = user.Id,
             Token = response.RefreshToken,
-            ExpiresAt = DateTimeOffset.UtcNow.AddDays(refreshTokenDays)
+            ExpiresAt =
+                now.AddDays(refreshTokenDays)
         });
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.LoginAttempts.Add(new LoginAttempt
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            Succeeded = true,
+            FailureReason = null,
+            IpAddress = ipAddress,
+            UserAgent = userAgent,
+            CreatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
 
         return response;
     }
-
     public async Task<AuthResponse?> GoogleLoginAsync(
         GoogleLoginRequest request,
         CancellationToken cancellationToken)
@@ -196,6 +296,140 @@ public class AuthService(
         return response;
     }
 
+    public async Task<bool> SendVerificationEmailAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var user = await dbContext.Users
+            .Include(account => account.Profile)
+            .SingleOrDefaultAsync(
+                account => account.Id == userId,
+                cancellationToken);
+
+        if (user is null || user.IsEmailVerified)
+        {
+            return false;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+
+        var existingTokens =
+            await dbContext.EmailVerificationTokens
+                .Where(token =>
+                    token.UserId == user.Id &&
+                    token.UsedAt == null)
+                .ToListAsync(cancellationToken);
+
+        foreach (var existingToken in existingTokens)
+        {
+            existingToken.UsedAt = now;
+        }
+
+        var token = CreateSecureToken();
+
+        dbContext.EmailVerificationTokens.Add(
+            new EmailVerificationToken
+            {
+                UserId = user.Id,
+                TokenHash = HashToken(token),
+                CreatedAt = now,
+                ExpiresAt = now.AddHours(24)
+            });
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        var baseUrl =
+            _appUrlOptions.FrontendBaseUrl.TrimEnd('/');
+
+        var verificationLink =
+            $"{baseUrl}/auth/verify-email?token=" +
+            Uri.EscapeDataString(token);
+
+        var customerName =
+            user.Profile?.FullName ?? user.Email;
+
+        await emailSender.SendEmailVerificationAsync(
+            user.Email,
+            customerName,
+            verificationLink,
+            cancellationToken);
+
+        return true;
+    }
+
+    public async Task RequestVerificationAsync(
+        string email,
+        CancellationToken cancellationToken)
+    {
+        var normalizedEmail = NormalizeEmail(email);
+
+        var userId = await dbContext.Users
+            .Where(user =>
+                user.NormalizedEmail == normalizedEmail &&
+                !user.IsEmailVerified &&
+                user.GoogleSubject == null)
+            .Select(user => (Guid?)user.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (userId.HasValue)
+        {
+            await SendVerificationEmailAsync(
+                userId.Value,
+                cancellationToken);
+        }
+    }
+
+    public async Task<bool> VerifyEmailAsync(
+        string token,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
+        var tokenHash = HashToken(token.Trim());
+        var now = DateTimeOffset.UtcNow;
+
+        var verificationToken =
+            await dbContext.EmailVerificationTokens
+                .Include(item => item.User)
+                .SingleOrDefaultAsync(
+                    item =>
+                        item.TokenHash == tokenHash &&
+                        item.UsedAt == null &&
+                        item.ExpiresAt > now,
+                    cancellationToken);
+
+        if (verificationToken is null)
+        {
+            return false;
+        }
+
+        verificationToken.UsedAt = now;
+        verificationToken.User.IsEmailVerified = true;
+        verificationToken.User.UpdatedAt = now;
+
+        var remainingTokens =
+            await dbContext.EmailVerificationTokens
+                .Where(item =>
+                    item.UserId ==
+                        verificationToken.UserId &&
+                    item.Id != verificationToken.Id &&
+                    item.UsedAt == null)
+                .ToListAsync(cancellationToken);
+
+        foreach (var remainingToken in remainingTokens)
+        {
+            remainingToken.UsedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        return true;
+    }
     public async Task<string?> RequestPasswordResetAsync(
         ForgotPasswordRequest request,
         CancellationToken cancellationToken)
@@ -369,6 +603,41 @@ public class AuthService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AuthResponse?> RefreshSessionAsync(
+        string refreshToken,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var storedToken = await dbContext.RefreshTokens
+            .Include(item => item.User).ThenInclude(user => user.Profile)
+            .Include(item => item.User).ThenInclude(user => user.FitProfile)
+            .Include(item => item.User).ThenInclude(user => user.TryOnPhotos)
+            .Include(item => item.User).ThenInclude(user => user.DeliveryAddress)
+            .SingleOrDefaultAsync(item => item.Token == refreshToken, cancellationToken);
+
+        if (storedToken is null || storedToken.RevokedAt is not null || storedToken.ExpiresAt <= now)
+        {
+            return null;
+        }
+
+        storedToken.RevokedAt = now;
+        var response = CreateAuthResponse(storedToken.User);
+        dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = storedToken.UserId,
+            Token = response.RefreshToken,
+            ExpiresAt = now.AddDays(_jwtOptions.RefreshTokenDays)
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return response;
     }
 
     private AuthResponse CreateAuthResponse(User user)
@@ -584,3 +853,6 @@ public sealed class GoogleAuthNotConfiguredException : Exception
     {
     }
 }
+
+
+

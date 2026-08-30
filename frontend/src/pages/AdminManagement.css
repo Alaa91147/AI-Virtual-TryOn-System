@@ -1,0 +1,422 @@
+.management-content{max-width:1100px}.management-form{margin-top:28px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}.management-form>section,.management-form>aside{padding:26px;border:1px solid var(--a-line);border-radius:9px;background:#fff}.management-form h2,.management-form h3{margin:0 0 6px;font:600 21px Georgia,serif}.management-form p,.management-form li{color:var(--a-muted);font-size:11px;line-height:1.6}.management-form label,.management-modal label{margin-top:16px;display:grid;gap:7px;color:#5f5a52;font-size:10px;font-weight:800}.management-form input,.management-form textarea,.management-form select,.management-modal input,.management-modal select{width:100%;padding:11px;border:1px solid var(--a-line);border-radius:5px;background:#fff;outline:none;font-size:11px}.management-form textarea{resize:vertical}.management-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.management-submit{margin-top:20px}.management-form>aside>svg{margin-bottom:17px;color:#9a7b4f}.management-form ul{padding-left:17px}.management-success{margin-top:20px;padding:12px 14px;border:1px solid #bed8c7;border-radius:6px;display:flex;align-items:center;gap:8px;background:#edf7f0;color:#356b49;font-size:11px}.categories-panel,.audit-panel{margin-top:28px}.categories-table{min-width:850px}.row-actions{display:flex;gap:6px}.row-actions button{width:31px;height:31px;border:0;border-radius:5px;display:grid;place-items:center;background:#f2efe9;cursor:pointer}.row-actions button.danger{color:#9b4d45}.management-modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:rgba(17,17,17,.58)}.management-modal form{position:relative;width:min(520px,100%);padding:30px;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(0,0,0,.3)}.management-modal h2{margin:5px 0 18px;font:500 28px Georgia,serif}.management-modal .admin-primary-btn{width:100%;margin-top:21px}.modal-close{position:absolute;right:18px;top:18px;width:34px;height:34px;border:0;border-radius:50%;display:grid;place-items:center;background:#f2efe9;cursor:pointer}.toggle-line{grid-template-columns:auto 1fr!important;align-items:center}.toggle-line input{width:16px!important}.audit-table{min-width:1100px}.audit-action{padding:5px 8px;border-radius:12px;background:#f3eee6;color:#80663f;font-size:8px;font-weight:850}@media(max-width:900px){.management-form{grid-template-columns:1fr}}@media(max-width:650px){.management-grid{grid-template-columns:1fr}}
+
+.audit-details-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: #f5f2ed;
+  border: 1px solid #ded8ce;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.audit-technical-row td {
+  padding: 14px 20px;
+  background: #f8f6f2;
+}
+
+.audit-technical-row td > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 8px;
+  color: #716b62;
+  font-size: 12px;
+}
+
+.audit-admin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audit-admin > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: #5e431d;
+  background: #eee3d2;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.audit-admin > div {
+  display: grid;
+  gap: 2px;
+}
+
+.verification-control-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  margin: 10px 0 18px;
+  border: 1px solid #ded8ce;
+  border-radius: 10px;
+  background: #faf8f4;
+}
+
+.verification-control-panel > div {
+  display: grid;
+  gap: 4px;
+}
+
+.verification-control-panel small {
+  color: #746e65;
+  line-height: 1.45;
+}
+
+.verification-control-panel textarea {
+  width: 100%;
+  margin-top: 7px;
+  resize: vertical;
+}
+
+.verification-control-panel button {
+  justify-content: center;
+}
+
+/* Professional Audit Logs layout */
+.audit-panel {
+  width: 100%;
+  max-width: none;
+}
+
+.audit-panel .admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.audit-table {
+  width: 100%;
+  min-width: 1320px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.audit-table th,
+.audit-table td {
+  padding: 20px 18px;
+  vertical-align: middle;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.audit-table th {
+  color: #777168;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.audit-table td {
+  color: #24211e;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Date */
+.audit-table th:nth-child(1),
+.audit-table td:nth-child(1) {
+  width: 145px;
+}
+
+/* Action */
+.audit-table th:nth-child(2),
+.audit-table td:nth-child(2) {
+  width: 190px;
+}
+
+/* Item */
+.audit-table th:nth-child(3),
+.audit-table td:nth-child(3) {
+  width: 160px;
+}
+
+/* Administrator */
+.audit-table th:nth-child(4),
+.audit-table td:nth-child(4) {
+  width: 275px;
+}
+
+/* Description */
+.audit-table th:nth-child(5),
+.audit-table td:nth-child(5) {
+  width: 330px;
+}
+
+/* Location */
+.audit-table th:nth-child(6),
+.audit-table td:nth-child(6) {
+  width: 145px;
+}
+
+/* Details button */
+.audit-table th:nth-child(7),
+.audit-table td:nth-child(7) {
+  width: 70px;
+  text-align: center;
+}
+
+.audit-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.audit-admin {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.audit-admin > span {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.audit-admin > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.audit-admin strong,
+.audit-admin small {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.audit-admin strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.audit-admin small {
+  color: #777168;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.audit-table td:nth-child(5) > span {
+  display: block;
+  line-height: 1.55;
+  white-space: normal;
+}
+
+.audit-table td:first-child strong,
+.audit-table td:first-child small {
+  display: block;
+}
+
+.audit-table td:first-child small {
+  margin-top: 4px;
+  color: #8a847b;
+}
+
+.audit-details-button {
+  margin: auto;
+}
+
+.audit-technical-row td {
+  padding: 18px 24px;
+  background: #faf8f4;
+}
+
+@media (max-width: 900px) {
+  .audit-table {
+    min-width: 1250px;
+  }
+}
+
+/* Professional Account Controls modal */
+.management-modal {
+  padding: 28px;
+  overflow-y: auto;
+}
+
+.management-modal .account-control-modal {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  padding: 34px 36px;
+  border-radius: 14px;
+}
+
+.account-control-modal h2 {
+  margin: 7px 0 6px;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.account-control-modal > p {
+  margin: 0 0 20px;
+  color: #68625a;
+  font-size: 15px;
+}
+
+.account-control-modal label {
+  color: #302d29;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.account-control-modal input,
+.account-control-modal textarea,
+.account-control-modal select {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.account-control-modal textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d9d2c8;
+  border-radius: 7px;
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.account-control-modal textarea:focus,
+.account-control-modal input:focus {
+  border-color: #9a7b4f;
+  box-shadow: 0 0 0 3px rgba(154, 123, 79, 0.12);
+}
+
+.verification-control-panel {
+  gap: 16px;
+  padding: 20px;
+  margin: 18px 0 22px;
+}
+
+.verification-control-panel strong {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.verification-control-panel small {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.verification-control-panel label {
+  margin: 4px 0 0;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.verification-control-panel button {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* Correct checkbox and description alignment */
+.account-control-modal .account-control-toggle {
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  align-items: start;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 15px 16px;
+  border: 1px solid #e2dcd2;
+  border-radius: 9px;
+  background: #faf8f4;
+  cursor: pointer;
+}
+
+.account-control-modal .account-control-toggle input {
+  width: 18px !important;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: #191715;
+}
+
+.account-control-modal .account-control-toggle > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-control-modal .account-control-toggle strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.account-control-modal .account-control-toggle small {
+  display: block;
+  color: #746e65;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.account-control-modal > label:not(
+  .account-control-toggle
+) {
+  margin-top: 20px;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.account-control-modal .admin-primary-btn {
+  min-height: 48px;
+  margin-top: 24px;
+  font-size: 14px;
+}
+
+/* Account summary cards */
+.account-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.account-summary > div {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid #ded8ce;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.account-summary span {
+  color: #756f66;
+  font-size: 12px;
+}
+
+.account-summary strong {
+  color: #191715;
+  font-size: 25px;
+  line-height: 1;
+}
+
+@media (max-width: 700px) {
+  .management-modal {
+    padding: 12px;
+  }
+
+  .management-modal .account-control-modal {
+    padding: 26px 20px;
+    max-height: calc(100vh - 24px);
+  }
+
+  .account-summary {
+    grid-template-columns: 1fr;
+  }
+}

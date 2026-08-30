@@ -1,12 +1,13 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Archive, ArrowLeft, Box, Check, ChevronDown, CircleDollarSign,
-  Eye, ImagePlus, LayoutDashboard, MoreHorizontal, Package,
-  Pencil, Plus, RefreshCcw, Search, Settings, ShoppingBag,
-  SlidersHorizontal, Trash2, Upload, Users, X,
+  Archive, Box, Check, ChevronDown, ChevronLeft, ChevronRight,
+  CircleDollarSign, Download, Eye, ImagePlus, LayoutDashboard, MoreHorizontal,
+  Package, Pencil, Plus, RefreshCcw, Search, ShoppingBag,
+  Trash2, Upload, Users, X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import AdminSidebar from '../components/admin/AdminSidebar.jsx';
 import { getErrorMessage } from '../services/authService.js';
 import { adminProductService } from '../services/adminProductService.js';
 import './AdminProductsPage.css';
@@ -26,6 +27,8 @@ const emptyDraft = {
 ],
   sizes: [{ name: 'S', stockQuantity: 0 }, { name: 'M', stockQuantity: 0 }],
 };
+
+const PRODUCTS_PER_PAGE = 8;
 
 function stockOf(product) {
   return product.sizes?.reduce((sum, size) => sum + Number(size.stockQuantity || 0), 0) || 0;
@@ -204,6 +207,11 @@ function ProductEditor({ draft, categories, onChange, onClose, onSave, saving })
         ...draft,
         aiMaskFile: maskFile,
         aiMaskUrl: maskUrl,
+        aiMaskImageUrl: '',
+        colors: (draft.colors || []).map((color) => ({
+          ...color,
+          imageUrl: null,
+        })),
         maskApproved: false,
         maskScore: result.score,
       });
@@ -415,6 +423,10 @@ export default function AdminProductsPage() {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [audienceFilter, setAudienceFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('default');
+  const [page, setPage] = useState(1);
   const [draft, setDraft] = useState(null);
   const [menu, setMenu] = useState(null);
   const [toast, setToast] = useState('');
@@ -432,11 +444,37 @@ export default function AdminProductsPage() {
     }).finally(() => setLoading(false));
   }, [token]);
 
-  const filtered = useMemo(() => products.filter((product) => {
-    const matchesQuery = `${product.name} ${product.categoryName} ${product.slug}`.toLowerCase().includes(query.toLowerCase());
-    const matchesStatus = status === 'all' || (status === 'active' ? product.isActive && !product.archived : status === 'inactive' ? !product.isActive && !product.archived : product.archived);
-    return matchesQuery && matchesStatus;
-  }), [products, query, status]);
+  const filtered = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const results = products.filter((product) => {
+      const inventory = stockOf(product);
+      const matchesQuery = [product.name, product.categoryName, product.slug, product.audience, product.badge]
+        .filter(Boolean).join(' ').toLowerCase().includes(normalizedQuery);
+      const matchesStatus = status === 'all'
+        || (status === 'active' && product.isActive && !product.archived)
+        || (status === 'inactive' && !product.isActive && !product.archived)
+        || (status === 'low-stock' && inventory > 0 && inventory < 6)
+        || (status === 'out-of-stock' && inventory === 0);
+      return matchesQuery && matchesStatus
+        && (categoryFilter === 'all' || product.categoryId === categoryFilter)
+        && (audienceFilter === 'all' || normalizeAudience(product.audience) === audienceFilter);
+    });
+    return [...results].sort((first, second) => {
+      if (sortBy === 'name-asc') return first.name.localeCompare(second.name);
+      if (sortBy === 'name-desc') return second.name.localeCompare(first.name);
+      if (sortBy === 'price-low') return Number(first.price) - Number(second.price);
+      if (sortBy === 'price-high') return Number(second.price) - Number(first.price);
+      if (sortBy === 'stock-low') return stockOf(first) - stockOf(second);
+      if (sortBy === 'stock-high') return stockOf(second) - stockOf(first);
+      return 0;
+    });
+  }, [products, query, status, categoryFilter, audienceFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
+  const visibleProducts = filtered.slice((page - 1) * PRODUCTS_PER_PAGE, page * PRODUCTS_PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [query, status, categoryFilter, audienceFilter, sortBy]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   const totalStock = products.reduce((sum, product) => sum + stockOf(product), 0);
   function notify(message) { setToast(message); window.setTimeout(() => setToast(''), 2400); }
@@ -577,8 +615,21 @@ export default function AdminProductsPage() {
       setSaving(false);
     }
   }
-  function archive(product) { setProducts((current) => current.map((item) => item.id === product.id ? { ...item, archived: true, isActive: false } : item)); setMenu(null); notify('Product archived'); }
-  function restore(product) { setProducts((current) => current.map((item) => item.id === product.id ? { ...item, archived: false, isActive: true } : item)); setMenu(null); notify('Product restored'); }
+  async function setProductActive(product, isActive) {
+    try {
+      setError(''); setMenu(null);
+      const saved = await adminProductService.update(token, product.id, {
+        categoryId: product.categoryId, name: product.name, slug: product.slug,
+        description: product.description || '', price: Number(product.price),
+        imageUrl: product.imageUrl, originalImageUrl: product.originalImageUrl || product.imageUrl,
+        aiMaskImageUrl: product.aiMaskImageUrl || null, badge: product.badge || null, isActive,
+        colors: (product.colors || []).map(({ name, hexCode, imageUrl }) => ({ name, hexCode, imageUrl: imageUrl || null })),
+        sizes: (product.sizes || []).map(({ name, stockQuantity }) => ({ name, stockQuantity: Number(stockQuantity) || 0 })),
+      });
+      setProducts((current) => current.map((item) => item.id === product.id ? { ...saved, archived: false } : item));
+      notify(isActive ? 'Product activated' : 'Product hidden from the store');
+    } catch (requestError) { setError(getErrorMessage(requestError, 'The product status could not be updated.')); }
+  }
   async function deleteProduct(product) {
     if (!window.confirm(`Permanently delete "${product.name}"? This action cannot be undone.`)) return;
     try {
@@ -592,13 +643,28 @@ export default function AdminProductsPage() {
     }
   }
 
+  function exportProducts() {
+    if (!filtered.length) { setError('There are no products to export.'); return; }
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = filtered.map((product) => [
+      product.name, product.slug, product.categoryName, product.audience,
+      product.price, product.salePrice || '', stockOf(product),
+      product.colors?.map((color) => color.name).join(' | ') || '',
+      product.sizes?.map((size) => `${size.name}: ${size.stockQuantity}`).join(' | ') || '',
+      product.archived ? 'Archived' : product.isActive ? 'Active' : 'Inactive',
+    ]);
+    const csv = [['Name', 'Slug', 'Category', 'Audience', 'Price', 'Sale Price', 'Stock', 'Colors', 'Sizes', 'Status'], ...rows]
+      .map((row) => row.map(escapeCsv).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `products-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <Link className="admin-brand" to="/shop"><span>V</span><div>VIRTUAL<strong>TRY-ON</strong></div></Link>
-        <nav><small>WORKSPACE</small><Link to="/shop"><LayoutDashboard size={19} /> Dashboard</Link><a className="is-active"><ShoppingBag size={19} /> Products <b>{products.length}</b></a><Link to="/admin/orders"><Box size={19} /> Orders</Link><Link to="/admin/customers"><Users size={19} /> Customers</Link><small>MANAGE</small><a><SlidersHorizontal size={19} /> Categories</a><Link to="/admin/promotions"><CircleDollarSign size={19} /> Promotions</Link><a><Settings size={19} /> Settings</a></nav>
-        <div className="admin-account"><div>{user?.fullName?.slice(0, 2).toUpperCase() || 'AD'}</div><span><strong>{user?.fullName || 'Admin User'}</strong><small>{user?.email || 'admin@atelier.com'}</small></span><MoreHorizontal size={18} /></div>
-      </aside>
+      <AdminSidebar user={user} counts={{ '/admin/products': products.length }} />
 
       <main className="admin-main">
         <header className="admin-topbar"><div><span>Catalog</span><b>/</b><strong>Products</strong></div><Link to="/shop"><Eye size={17} /> View storefront</Link></header>
@@ -614,14 +680,20 @@ export default function AdminProductsPage() {
 
           <section className="admin-products-panel">
             <div className="admin-panel-toolbar">
-              <div className="admin-status-tabs">{['all', 'active', 'inactive', 'archived'].map((item) => <button key={item} className={status === item ? 'is-active' : ''} onClick={() => setStatus(item)}>{item[0].toUpperCase() + item.slice(1)}{item === 'all' && <span>{products.length}</span>}</button>)}</div>
-              <div className="admin-toolbar-actions"><label><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products…" /></label><button><SlidersHorizontal size={17} /> Filter</button></div>
+              <div className="admin-status-tabs">{[['all','All'],['active','Active'],['inactive','Inactive'],['low-stock','Low stock'],['out-of-stock','Out of stock']].map(([value,label]) => <button type="button" key={value} className={status === value ? 'is-active' : ''} onClick={() => setStatus(value)}>{label}{value === 'all' && <span>{products.length}</span>}</button>)}</div>
+              <div className="admin-toolbar-actions product-toolbar-actions">
+                <label className="product-search"><Search size={17}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search products…"/></label>
+                <label className="product-filter-select"><select value={audienceFilter} onChange={(event)=>setAudienceFilter(event.target.value)}><option value="all">All audiences</option><option>Women</option><option>Men</option><option>Unisex</option></select><ChevronDown size={14}/></label>
+                <label className="product-filter-select"><select value={categoryFilter} onChange={(event)=>setCategoryFilter(event.target.value)}><option value="all">All categories</option>{categories.map((category)=><option key={category.id} value={category.id}>{category.name}</option>)}</select><ChevronDown size={14}/></label>
+                <label className="product-filter-select"><select value={sortBy} onChange={(event)=>setSortBy(event.target.value)}><option value="default">Default order</option><option value="name-asc">Name: A–Z</option><option value="name-desc">Name: Z–A</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="stock-low">Stock: low to high</option><option value="stock-high">Stock: high to low</option></select><ChevronDown size={14}/></label>
+                <button type="button" className="product-export-button" onClick={exportProducts} disabled={!filtered.length}><Download size={16}/> Export</button>
+              </div>
             </div>
             <div className="admin-table-wrap">
               <table className="admin-products-table">
                 <thead><tr><th>Product</th><th>Category</th><th>Inventory</th><th>Price</th><th>Sale price</th><th>Status</th><th /></tr></thead>
                 <tbody>
-                  {loading ? <tr><td colSpan="7" className="admin-empty">Loading catalog…</td></tr> : filtered.length === 0 ? <tr><td colSpan="7" className="admin-empty">No products match this view.</td></tr> : filtered.map((product) => {
+                  {loading ? <tr><td colSpan="7" className="admin-empty">Loading catalog…</td></tr> : filtered.length === 0 ? <tr><td colSpan="7" className="admin-empty">No products match this view.</td></tr> : visibleProducts.map((product) => {
                     const inventory = stockOf(product);
                     return <tr key={product.id}>
                       <td><div className="admin-product-cell"><div className="admin-product-thumb">{product.imageUrl ? <img src={product.imageUrl} alt="" /> : <ImagePlus size={20} />}</div><span><strong>{product.name}</strong><small>/{product.slug}</small><i>{product.colors?.slice(0, 4).map((color) => <b key={color.name} style={{ background: color.hexCode }} title={color.name} />)}{product.colors?.length ? <em>{product.colors.length} colors</em> : null}</i></span></div></td>
@@ -630,13 +702,13 @@ export default function AdminProductsPage() {
                       <td><strong>${Number(product.price).toFixed(2)}</strong>{product.badge && <small>{product.badge}</small>}</td>
                       <td>{product.salePrice != null ? <><strong className="admin-sale-price">${Number(product.salePrice).toFixed(2)}</strong><small>{Number(product.discountPercentage).toFixed(0)}% off</small></> : <span className="admin-no-sale">—</span>}</td>
                       <td><span className={`admin-status ${product.archived ? 'is-archived' : product.isActive ? 'is-active' : 'is-hidden'}`}><i />{product.archived ? 'Archived' : product.isActive ? 'Active' : 'Inactive'}</span></td>
-                      <td className="admin-menu-cell"><button onClick={() => setMenu(menu === product.id ? null : product.id)}><MoreHorizontal size={19} /></button>{menu === product.id && <div className="admin-row-menu"><button onClick={() => { setDraft({ ...product, originalImageUrl: product.originalImageUrl || product.imageUrl, audience: normalizeAudience(product.audience), imageFiles: [], salePrice: product.salePrice || '' }); setMenu(null); }}><Pencil size={15} /> Edit product</button><Link to={`/shop/products/${product.id}`}><Eye size={15} /> Preview page</Link>{product.archived ? <button onClick={() => restore(product)}><RefreshCcw size={15} /> Restore</button> : <button className="is-danger" onClick={() => archive(product)}><Archive size={15} /> Archive</button>}<button className="is-danger" onClick={() => deleteProduct(product)}><Trash2 size={15} /> Delete permanently</button></div>}</td>
+                      <td className="admin-menu-cell"><button onClick={() => setMenu(menu === product.id ? null : product.id)}><MoreHorizontal size={19} /></button>{menu === product.id && <div className="admin-row-menu"><button onClick={() => { setDraft({ ...product, originalImageUrl: product.originalImageUrl || product.imageUrl, audience: normalizeAudience(product.audience), imageFiles: [], salePrice: product.salePrice || '' }); setMenu(null); }}><Pencil size={15} /> Edit product</button><Link to={`/shop/products/${product.id}`}><Eye size={15} /> Preview page</Link><button onClick={() => setProductActive(product, !product.isActive)}>{product.isActive ? <Archive size={15}/> : <RefreshCcw size={15}/>} {product.isActive ? 'Hide from store' : 'Activate product'}</button><button className="is-danger" onClick={() => deleteProduct(product)}><Trash2 size={15} /> Delete permanently</button></div>}</td>
                     </tr>;
                   })}
                 </tbody>
               </table>
             </div>
-            <footer className="admin-table-footer"><span>Showing <strong>{filtered.length}</strong> of {products.length} products</span><div><button disabled><ArrowLeft size={15} /></button><button className="is-active">1</button><button disabled>2</button><button disabled><ArrowLeft size={15} /></button></div></footer>
+            <footer className="admin-table-footer professional-product-footer"><span>Showing <strong>{visibleProducts.length}</strong> of {filtered.length} filtered products</span><div><button type="button" disabled={page===1} onClick={()=>setPage((current)=>Math.max(1,current-1))}><ChevronLeft size={15}/></button><span className="product-page-number">Page {page} of {totalPages}</span><button type="button" disabled={page===totalPages} onClick={()=>setPage((current)=>Math.min(totalPages,current+1))}><ChevronRight size={15}/></button></div></footer>
           </section>
         </div>
       </main>
@@ -645,3 +717,8 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+
+
+
+
+

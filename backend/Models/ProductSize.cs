@@ -1,4 +1,4 @@
-namespace VirtualTryOn.Api.Models;
+﻿namespace VirtualTryOn.Api.Models;
 
 public class ProductSize
 {
@@ -14,4 +14,7 @@ public class ProductSize
 
     public ICollection<CartItem> CartItems { get; set; } = [];
     public ICollection<OrderItem> OrderItems { get; set; } = [];
+
+    public ICollection<ProductVariant> Variants { get; set; } = [];
 }
+

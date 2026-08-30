@@ -40,12 +40,23 @@ public DbSet<UserDeliveryAddress> UserDeliveryAddresses =>
     public DbSet<ProductSize> ProductSizes =>
         Set<ProductSize>();
 
+    public DbSet<ProductVariant> ProductVariants =>
+        Set<ProductVariant>();
+
+    public DbSet<VariantInventoryAdjustment> VariantInventoryAdjustments =>
+        Set<VariantInventoryAdjustment>();
+
     public DbSet<Promotion> Promotions => Set<Promotion>();
     public DbSet<PromotionProduct> PromotionProducts => Set<PromotionProduct>();
     public DbSet<PromotionEmailDelivery> PromotionEmailDeliveries => Set<PromotionEmailDelivery>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
+public DbSet<InventoryAdjustment> InventoryAdjustments =>
+    Set<InventoryAdjustment>();
 
+public DbSet<LoginAttempt> LoginAttempts =>
+    Set<LoginAttempt>();
         public DbSet<CartItem> CartItems =>
     Set<CartItem>();
 
@@ -63,10 +74,15 @@ public DbSet<UserNotification> Notifications =>
     RecentlyViewedProducts =>
         Set<RecentlyViewedProduct>();
 
-    protected override void OnModelCreating(
+        public DbSet<EmailVerificationToken> EmailVerificationTokens =>
+        Set<EmailVerificationToken>();
+protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(AppDbContext).Assembly);
 
         ConfigureUser(modelBuilder);
         ConfigureUserProfile(modelBuilder);
@@ -85,8 +101,31 @@ ConfigureUserDeliveryAddress(modelBuilder);
         ConfigureFavorite(modelBuilder);
         ConfigureProductColor(modelBuilder);
         ConfigureProductSize(modelBuilder);
+        ConfigureProductVariant(modelBuilder);
+        ConfigureVariantInventoryAdjustment(modelBuilder);
         ConfigurePromotion(modelBuilder);
         ConfigureOrder(modelBuilder);
+        ConfigureAdminAuditLog(modelBuilder);
+        ConfigureInventoryAdjustment(modelBuilder);
+ConfigureLoginAttempt(modelBuilder);
+    }
+
+    private static void ConfigureAdminAuditLog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AdminAuditLog>(entity =>
+        {
+            entity.ToTable("AdminAuditLogs");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Action).HasMaxLength(80).IsRequired();
+            entity.Property(item => item.EntityType).HasMaxLength(80).IsRequired();
+            entity.Property(item => item.EntityId).HasMaxLength(100);
+            entity.Property(item => item.Details).HasMaxLength(2000);
+            entity.Property(item => item.IpAddress).HasMaxLength(64);
+            entity.HasIndex(item => item.CreatedAt);
+            entity.HasIndex(item => item.AdminUserId);
+            entity.HasOne<User>().WithMany().HasForeignKey(item => item.AdminUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private static void ConfigureOrder(ModelBuilder modelBuilder)
@@ -114,6 +153,7 @@ ConfigureUserDeliveryAddress(modelBuilder);
             entity.Property(item => item.ImageUrl).HasMaxLength(2048).IsRequired();
             entity.Property(item => item.SizeName).HasMaxLength(30).IsRequired();
             entity.Property(item => item.ColorName).HasMaxLength(60);
+            entity.Property(item => item.Sku).HasMaxLength(80);
             entity.Property(item => item.OriginalUnitPrice).HasPrecision(10, 2);
             entity.Property(item => item.UnitPrice).HasPrecision(10, 2);
             entity.Property(item => item.LineTotal).HasPrecision(10, 2);
@@ -506,6 +546,98 @@ private static void ConfigureFavorite(
             .OnDelete(DeleteBehavior.Cascade);
     });
 }
+
+
+    private static void ConfigureVariantInventoryAdjustment(
+        ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<VariantInventoryAdjustment>(entity =>
+        {
+            entity.ToTable("VariantInventoryAdjustments");
+
+            entity.HasKey(item => item.Id);
+
+            entity.Property(item => item.Operation)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(item => item.Reason)
+                .HasMaxLength(300)
+                .IsRequired();
+
+            entity.Property(item => item.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(item => item.ProductVariantId);
+
+            entity.HasIndex(item => item.AdminUserId);
+
+            entity.HasIndex(item => item.CreatedAt);
+
+            entity.HasOne(item => item.ProductVariant)
+                .WithMany(variant => variant.InventoryAdjustments)
+                .HasForeignKey(item => item.ProductVariantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(item => item.AdminUser)
+                .WithMany()
+                .HasForeignKey(item => item.AdminUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+    private static void ConfigureProductVariant(
+        ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ProductVariant>(entity =>
+        {
+            entity.ToTable("ProductVariants");
+
+            entity.HasKey(variant => variant.Id);
+
+            entity.Property(variant => variant.Sku)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(variant => variant.StockQuantity)
+                .HasDefaultValue(0);
+
+            entity.Property(variant => variant.LowStockThreshold)
+                .HasDefaultValue(5);
+
+            entity.Property(variant => variant.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(variant => variant.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(variant => variant.Sku)
+                .IsUnique();
+
+            entity.HasIndex(variant => new
+            {
+                variant.ProductId,
+                variant.ProductColorId,
+                variant.ProductSizeId
+            }).IsUnique();
+
+            entity.HasIndex(variant => variant.StockQuantity);
+
+            entity.HasOne(variant => variant.Product)
+                .WithMany(product => product.Variants)
+                .HasForeignKey(variant => variant.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(variant => variant.ProductColor)
+                .WithMany(color => color.Variants)
+                .HasForeignKey(variant => variant.ProductColorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(variant => variant.ProductSize)
+                .WithMany(size => size.Variants)
+                .HasForeignKey(variant => variant.ProductSizeId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+    }
     private static void ConfigureProductSize(
         ModelBuilder modelBuilder)
     {
@@ -577,6 +709,10 @@ private static void ConfigureFavorite(
             .HasForeignKey(item =>
                 item.ProductColorId)
             .OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne(item => item.ProductVariant)
+            .WithMany(variant => variant.CartItems)
+            .HasForeignKey(item => item.ProductVariantId)
+            .OnDelete(DeleteBehavior.NoAction);
     });
 }
 
@@ -697,7 +833,74 @@ private static void ConfigureUserProfile(ModelBuilder modelBuilder)
             .OnDelete(DeleteBehavior.Cascade);
     });
 }
+private static void ConfigureInventoryAdjustment(
+    ModelBuilder modelBuilder)
+{
+    modelBuilder.Entity<InventoryAdjustment>(
+        entity =>
+        {
+            entity.ToTable("InventoryAdjustments");
 
+            entity.HasKey(item => item.Id);
+
+            entity.Property(item => item.Reason)
+                .HasMaxLength(300)
+                .IsRequired();
+
+            entity.HasIndex(item => item.CreatedAt);
+            entity.HasIndex(item => item.ProductId);
+
+            entity.HasOne(item => item.Product)
+                .WithMany()
+                .HasForeignKey(item => item.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(item => item.ProductSize)
+                .WithMany()
+                .HasForeignKey(
+                    item => item.ProductSizeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(
+                    item => item.AdminUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+}
+
+private static void ConfigureLoginAttempt(
+    ModelBuilder modelBuilder)
+{
+    modelBuilder.Entity<LoginAttempt>(
+        entity =>
+        {
+            entity.ToTable("LoginAttempts");
+
+            entity.HasKey(item => item.Id);
+
+            entity.Property(item => item.Email)
+                .HasMaxLength(320)
+                .IsRequired();
+
+            entity.Property(item => item.FailureReason)
+                .HasMaxLength(120);
+
+            entity.Property(item => item.IpAddress)
+                .HasMaxLength(64);
+
+            entity.Property(item => item.UserAgent)
+                .HasMaxLength(600);
+
+            entity.HasIndex(item => item.CreatedAt);
+            entity.HasIndex(item => item.Email);
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(item => item.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+}
 private static void ConfigureUserFitProfile(ModelBuilder modelBuilder)
 {
     modelBuilder.Entity<UserFitProfile>(entity =>
@@ -754,3 +957,9 @@ private static void ConfigureUserDeliveryAddress(ModelBuilder modelBuilder)
     });
 }
 }
+
+
+
+
+
+

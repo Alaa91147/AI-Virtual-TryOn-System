@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Mail, PackageCheck, Percent, Plus, Search, Send, Tag, Users, X } from 'lucide-react';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Check, LayoutDashboard, Mail, PackageCheck, Percent, RefreshCw, Search, Send, Tag, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AdminSidebar from '../components/admin/AdminSidebar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { adminProductService } from '../services/adminProductService.js';
 import { promotionService } from '../services/promotionService.js';
@@ -21,6 +22,10 @@ export default function AdminPromotionsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [campaignQuery, setCampaignQuery] = useState('');
+  const [campaignStatus, setCampaignStatus] = useState('All');
+  const [campaignBusy, setCampaignBusy] = useState('');
   const [form, setForm] = useState({
     name: '', discountPercentage: 20,
     startsAt: localInput(new Date()),
@@ -30,17 +35,65 @@ export default function AdminPromotionsPage() {
 
   async function load() {
     try {
+      setLoading(true); setError('');
       const [campaigns, catalog] = await Promise.all([
         promotionService.getAll(token), adminProductService.getCatalog(token),
       ]);
       setPromotions(campaigns); setProducts(catalog.products || []);
     } catch (loadError) { setError(getErrorMessage(loadError)); }
+    finally { setLoading(false); }
   }
   useEffect(() => { load(); }, [token]);
 
   const visibleProducts = useMemo(() => products.filter((product) =>
     `${product.name} ${product.categoryName} ${product.audience}`.toLowerCase().includes(query.toLowerCase())), [products, query]);
 
+  const visiblePromotions = useMemo(() => promotions.filter((promotion) => {
+    const now = new Date(); const starts = new Date(promotion.startsAt); const ends = new Date(promotion.endsAt);
+    const state = !promotion.isActive ? 'Inactive' : starts > now ? 'Scheduled' : ends < now ? 'Expired' : 'Active';
+    return (campaignStatus === 'All' || state === campaignStatus)
+      && promotion.name.toLowerCase().includes(campaignQuery.trim().toLowerCase());
+  }), [promotions, campaignQuery, campaignStatus]);
+
+  async function resendCampaign(promotion) {
+    try { setCampaignBusy(promotion.id); setError('');
+      const updated = await promotionService.send(token, promotion.id);
+      setPromotions((all) => all.map((item) => item.id === updated.id ? updated : item));
+      setSuccess(`Campaign delivery completed: ${updated.emailSuccessCount} sent, ${updated.emailFailureCount} failed.`);
+    } catch (sendError) { setError(getErrorMessage(sendError, 'The campaign could not be sent.')); }
+    finally { setCampaignBusy(''); }
+  }
+
+
+  async function reactivateCampaign(promotion) {
+    try {
+      setCampaignBusy(promotion.id);
+      setError('');
+      setSuccess('');
+
+      const updated = await promotionService.reactivate(
+        token,
+        promotion.id
+      );
+
+      setPromotions((all) =>
+        all.map((item) =>
+          item.id === updated.id ? updated : item
+        )
+      );
+
+      setSuccess(`${promotion.name} was reactivated successfully.`);
+    } catch (reactivateError) {
+      setError(
+        getErrorMessage(
+          reactivateError,
+          'The promotion could not be reactivated.'
+        )
+      );
+    } finally {
+      setCampaignBusy('');
+    }
+  }
   function toggleProduct(id) {
     setForm((current) => ({ ...current, productIds: current.productIds.includes(id)
       ? current.productIds.filter((item) => item !== id) : [...current.productIds, id] }));
@@ -66,11 +119,7 @@ export default function AdminPromotionsPage() {
   }
 
   return <div className="admin-shell">
-    <aside className="admin-sidebar">
-      <Link className="admin-brand" to="/admin/products"><span>V</span><div>VIRTUAL<strong>TRY-ON</strong></div></Link>
-      <nav><small>WORKSPACE</small><Link to="/admin/products"><Tag size={19}/> Products</Link><Link to="/admin/orders"><PackageCheck size={19}/> Orders</Link><Link to="/admin/customers"><Users size={19}/> Customers</Link><Link className="is-active" to="/admin/promotions"><Percent size={19}/> Promotions</Link></nav>
-      <div className="admin-account"><div>{user?.fullName?.slice(0,2).toUpperCase() || 'AD'}</div><span><strong>{user?.fullName}</strong><small>{user?.email}</small></span></div>
-    </aside>
+    <AdminSidebar user={user} />
     <main className="admin-main">
       <header className="admin-topbar"><div><span>Catalog</span><b>/</b><strong>Promotions</strong></div><Link to="/admin/products"><ArrowLeft size={17}/> Products</Link></header>
       <div className="admin-content promotion-content">
@@ -90,9 +139,64 @@ export default function AdminPromotionsPage() {
             <div className="promotion-card email-option"><Mail size={22}/><div><strong>Email all verified customers</strong><p>Each customer receives this campaign once. Delivery results are recorded.</p></div><button type="button" className={`admin-switch ${form.sendEmail?'is-on':''}`} onClick={()=>setForm({...form,sendEmail:!form.sendEmail})}><span/><b>{form.sendEmail?'Yes':'No'}</b></button></div>
             <button className="admin-primary-btn promotion-submit" disabled={saving}><Send size={17}/>{saving?'Creating and sending…':'Create promotion'}</button>
           </form>
-          <section className="promotion-history"><h2>Campaign history</h2>{promotions.length===0?<p>No promotions yet.</p>:promotions.map((item)=><article key={item.id}><div><strong>{item.name}</strong><span className={item.isActive?'active':''}>{item.isActive?'Active':'Inactive'}</span></div><b>{Number(item.discountPercentage).toFixed(0)}% off</b><p>{item.productCount} products · Ends {new Date(item.endsAt).toLocaleDateString()}</p><small><Mail size={13}/>{item.emailSuccessCount} sent · {item.emailFailureCount} failed</small>{item.isActive&&<button onClick={async()=>{const updated=await promotionService.deactivate(token,item.id);setPromotions((all)=>all.map((p)=>p.id===item.id?updated:p));}}><X size={14}/>Deactivate</button>}</article>)}</section>
+          <section className="promotion-history"><div className="campaign-history-head"><div><h2>Campaign history</h2><p>{visiblePromotions.length} campaigns shown</p></div><button type="button" onClick={load} disabled={loading}><RefreshCw size={14} className={loading?'spin':''}/></button></div><div className="campaign-history-filters"><label><Search size={13}/><input value={campaignQuery} onChange={(event)=>setCampaignQuery(event.target.value)} placeholder="Search campaigns"/></label><select value={campaignStatus} onChange={(event)=>setCampaignStatus(event.target.value)}>{['All','Active','Scheduled','Expired','Inactive'].map((item)=><option key={item}>{item}</option>)}</select></div>{loading?<p>Loading campaigns…</p>:visiblePromotions.length===0?<p>No promotions match this view.</p>:visiblePromotions.map((item)=>{const now=new Date();const state=!item.isActive?'Inactive':new Date(item.startsAt)>now?'Scheduled':new Date(item.endsAt)<now?'Expired':'Active';return <article key={item.id}><div><strong>{item.name}</strong><span className={state==='Active'?'active':''}>{state}</span></div><b>{Number(item.discountPercentage).toFixed(0)}% off</b><p>{item.productCount} products · {new Date(item.startsAt).toLocaleDateString()} – {new Date(item.endsAt).toLocaleDateString()}</p><small><Mail size={13}/>{item.emailSuccessCount} sent · {item.emailFailureCount} failed</small><div className="campaign-actions"><button type="button" disabled={campaignBusy===item.id} onClick={()=>resendCampaign(item)}><Send size={14}/>{campaignBusy===item.id?'Sending…':'Send pending emails'}</button>{item.isActive ? (
+  <button
+    type="button"
+    className="danger"
+    disabled={campaignBusy === item.id}
+    onClick={async () => {
+      if (!window.confirm(`Deactivate ${item.name}?`)) {
+        return;
+      }
+
+      try {
+        setCampaignBusy(item.id);
+        setError('');
+        setSuccess('');
+
+        const updated = await promotionService.deactivate(
+          token,
+          item.id
+        );
+
+        setPromotions((all) =>
+          all.map((promotion) =>
+            promotion.id === item.id ? updated : promotion
+          )
+        );
+
+        setSuccess(`${item.name} was deactivated successfully.`);
+      } catch (deactivateError) {
+        setError(
+          getErrorMessage(
+            deactivateError,
+            'The promotion could not be deactivated.'
+          )
+        );
+      } finally {
+        setCampaignBusy('');
+      }
+    }}
+  >
+    <X size={14}/>
+    {campaignBusy === item.id ? 'Deactivating…' : 'Deactivate'}
+  </button>
+) : (
+  <button
+    type="button"
+    className="reactivate"
+    disabled={campaignBusy === item.id}
+    onClick={() => reactivateCampaign(item)}
+  >
+    <RefreshCw size={14}/>
+    {campaignBusy === item.id ? 'Reactivating…' : 'Reactivate'}
+  </button>
+)}</div></article>})}</section>
         </div>
       </div>
     </main>
   </div>;
 }
+
+
+

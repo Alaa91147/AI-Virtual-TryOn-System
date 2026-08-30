@@ -13,6 +13,8 @@
   font-family: Inter, "Segoe UI", sans-serif;
 }
 
+.product-toolbar-actions{flex-wrap:wrap;justify-content:flex-end}.product-toolbar-actions .product-search{width:230px}.product-filter-select{position:relative;width:145px}.product-filter-select select{width:100%;height:38px;padding:0 30px 0 11px;border:1px solid var(--a-line);border-radius:5px;appearance:none;background:#fff;color:#4f4b45;font-size:10px;font-weight:700;cursor:pointer;outline:none}.product-filter-select select:focus{border-color:#9a7b4f;box-shadow:0 0 0 3px rgba(154,123,79,.12)}.product-filter-select svg{position:absolute;top:12px;right:10px;pointer-events:none}.product-export-button{min-height:38px;padding:0 13px;border:1px solid #171717;border-radius:5px;display:inline-flex;align-items:center;gap:7px;background:#171717;color:#fff;font-size:10px;font-weight:750;cursor:pointer}.product-export-button:disabled{opacity:.45;cursor:not-allowed}.professional-product-footer>div{display:flex;align-items:center;gap:7px}.product-page-number{min-width:90px;color:#777168;text-align:center;font-size:9px;font-weight:700}@media(max-width:1100px){.admin-panel-toolbar{align-items:flex-start;flex-direction:column}.product-toolbar-actions{width:100%;justify-content:flex-start}}@media(max-width:700px){.product-toolbar-actions>*{width:100%!important}.professional-product-footer{align-items:flex-start;flex-direction:column;gap:13px}}
+
 .admin-shell button,
 .admin-shell input,
 .admin-shell select,
@@ -793,4 +795,41 @@
   .admin-form-grid { grid-template-columns: 1fr; }
   .admin-drawer-body { padding: 18px 14px 40px; }
   .admin-drawer-header, .admin-drawer-footer { padding-inline: 18px; }
+}
+
+.admin-sidebar-notifications {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: auto 14px 10px;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-sidebar-notifications > span {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.admin-sidebar-notifications .notification-bell,
+.admin-sidebar-notifications button {
+  color: #fff;
+}
+
+.admin-sidebar-notifications .notification-menu,
+.admin-sidebar-notifications .notification-dropdown {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  top: auto;
+  z-index: 1300;
+  width: min(380px, calc(100vw - 32px));
+  max-height: 480px;
+  overflow-y: auto;
 }

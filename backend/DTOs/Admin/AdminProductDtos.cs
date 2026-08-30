@@ -35,7 +35,7 @@ public sealed record AdminProductColorResponse(
 public sealed record AdminProductSizeResponse(
     Guid Id, string Name, int StockQuantity);
 
-public sealed class SaveAdminProductRequest
+public sealed class SaveAdminProductRequest : IValidatableObject
 {
     [Required]
     public Guid CategoryId { get; set; }
@@ -43,7 +43,8 @@ public sealed class SaveAdminProductRequest
     [Required, MaxLength(160)]
     public string Name { get; set; } = string.Empty;
 
-    [Required, MaxLength(180)]
+    [Required, MaxLength(180), RegularExpression("^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        ErrorMessage = "Use lowercase letters, numbers, and single hyphens for the slug.")]
     public string Slug { get; set; } = string.Empty;
 
     [Required, MaxLength(2000)]
@@ -65,8 +66,22 @@ public sealed class SaveAdminProductRequest
     public string? Badge { get; set; }
 
     public bool IsActive { get; set; } = true;
+    [MinLength(1)]
     public List<SaveAdminProductColorRequest> Colors { get; set; } = [];
+
+    [MinLength(1)]
     public List<SaveAdminProductSizeRequest> Sizes { get; set; } = [];
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Colors.GroupBy(item => item.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Any(group => group.Count() > 1))
+            yield return new ValidationResult("Color names must be unique.", [nameof(Colors)]);
+
+        if (Sizes.GroupBy(item => item.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Any(group => group.Count() > 1))
+            yield return new ValidationResult("Size names must be unique.", [nameof(Sizes)]);
+    }
 }
 
 public sealed class SaveAdminProductColorRequest
@@ -74,7 +89,8 @@ public sealed class SaveAdminProductColorRequest
     [Required, MaxLength(60)]
     public string Name { get; set; } = string.Empty;
 
-    [Required, MaxLength(9)]
+    [Required, MaxLength(9), RegularExpression("^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
+        ErrorMessage = "Use a valid hexadecimal color such as #171717.")]
     public string HexCode { get; set; } = string.Empty;
 
     [MaxLength(2048)]

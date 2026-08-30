@@ -1,4 +1,4 @@
-namespace VirtualTryOn.Api.Models;
+﻿namespace VirtualTryOn.Api.Models;
 
 public class ProductColor
 {
@@ -17,4 +17,7 @@ public class ProductColor
 
     public ICollection<CartItem> CartItems { get; set; } = [];
     public ICollection<OrderItem> OrderItems { get; set; } = [];
+
+    public ICollection<ProductVariant> Variants { get; set; } = [];
 }
+

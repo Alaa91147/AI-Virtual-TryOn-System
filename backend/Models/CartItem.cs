@@ -1,4 +1,4 @@
-namespace VirtualTryOn.Api.Models;
+﻿namespace VirtualTryOn.Api.Models;
 
 public class CartItem
 {
@@ -9,6 +9,8 @@ public class CartItem
     public Guid ProductSizeId { get; set; }
 
     public Guid? ProductColorId { get; set; }
+
+    public Guid? ProductVariantId { get; set; }
 
     public int Quantity { get; set; } = 1;
 
@@ -22,4 +24,6 @@ public class CartItem
     public ProductSize ProductSize { get; set; } = null!;
 
     public ProductColor? ProductColor { get; set; }
+
+    public ProductVariant? ProductVariant { get; set; }
 }

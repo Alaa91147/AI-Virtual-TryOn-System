@@ -1,13 +1,17 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using VirtualTryOn.Api.Constants;
 using VirtualTryOn.Api.Data;
 using VirtualTryOn.Api.DTOs.Notifications;
+using VirtualTryOn.Api.Hubs;
 using VirtualTryOn.Api.Models;
 
 namespace VirtualTryOn.Api.Services;
 
 public class NotificationService(
-    AppDbContext dbContext)
+    AppDbContext dbContext,
+    IHubContext<NotificationsHub> hubContext)
 {
     public async Task<NotificationListResponse?>
         GetAsync(
@@ -101,41 +105,53 @@ public class NotificationService(
 
         return true;
     }
-public async Task CreateAsync(
-    Guid userId,
-    string title,
-    string message,
-    string type,
-    string? link,
-    CancellationToken cancellationToken)
-{
-    var userExists =
-        await dbContext.Users.AnyAsync(
-            user => user.Id == userId,
-            cancellationToken);
-
-    if (!userExists)
+    public async Task CreateAsync(
+        Guid userId,
+        string title,
+        string message,
+        string type,
+        string? link,
+        CancellationToken cancellationToken)
     {
-        return;
+        if (!await dbContext.Users.AnyAsync(user => user.Id == userId, cancellationToken))
+            return;
+
+        var notification = CreateEntity(userId, title, message, type, link);
+        dbContext.Notifications.Add(notification);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await hubContext.Clients.User(userId.ToString()).SendAsync(
+            "notificationReceived", ToResponse(notification), cancellationToken);
     }
 
-    dbContext.Notifications.Add(
-        new UserNotification
+    public async Task<BroadcastNotificationResponse> BroadcastAsync(
+        BroadcastNotificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var usersQuery = dbContext.Users.AsNoTracking();
+        if (!string.Equals(request.Audience, "All", StringComparison.OrdinalIgnoreCase))
         {
-            UserId = userId,
-            Title = title.Trim(),
-            Message = message.Trim(),
-            Type = type.Trim().ToLowerInvariant(),
-            Link = string.IsNullOrWhiteSpace(link)
-                ? null
-                : link.Trim(),
-            IsRead = false,
-            CreatedAt = DateTimeOffset.UtcNow
-        });
+            var role = string.Equals(request.Audience, "Admin", StringComparison.OrdinalIgnoreCase)
+                ? UserRoles.Admin
+                : UserRoles.Customer;
+            usersQuery = usersQuery.Where(user => user.Role == role);
+        }
 
-    await dbContext.SaveChangesAsync(
-        cancellationToken);
-}
+        var userIds = await usersQuery.Select(user => user.Id).ToListAsync(cancellationToken);
+        var notifications = userIds.Select(userId => CreateEntity(
+            userId, request.Title, request.Message, request.Type, request.Link)).ToList();
+
+        if (notifications.Count > 0)
+        {
+            dbContext.Notifications.AddRange(notifications);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await Task.WhenAll(notifications.Select(notification =>
+                hubContext.Clients.User(notification.UserId.ToString()).SendAsync(
+                    "notificationReceived", ToResponse(notification), cancellationToken)));
+        }
+
+        return new BroadcastNotificationResponse(notifications.Count, DateTimeOffset.UtcNow);
+    }
 
     public async Task<bool?> MarkAllReadAsync(
         ClaimsPrincipal principal,
@@ -210,6 +226,23 @@ public async Task CreateAsync(
             items,
             unreadCount);
     }
+
+    private static UserNotification CreateEntity(
+        Guid userId, string title, string message, string type, string? link) => new()
+    {
+        UserId = userId,
+        Title = title.Trim(),
+        Message = message.Trim(),
+        Type = string.IsNullOrWhiteSpace(type) ? "general" : type.Trim().ToLowerInvariant(),
+        Link = string.IsNullOrWhiteSpace(link) ? null : link.Trim(),
+        IsRead = false,
+        CreatedAt = DateTimeOffset.UtcNow
+    };
+
+    private static NotificationResponse ToResponse(UserNotification notification) => new(
+        notification.Id, notification.Title, notification.Message,
+        notification.Type, notification.Link, notification.IsRead,
+        notification.CreatedAt, notification.ReadAt);
 
     private static Guid? GetUserId(
         ClaimsPrincipal principal)

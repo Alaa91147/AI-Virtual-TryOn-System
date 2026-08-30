@@ -1,13 +1,27 @@
-import { useCallback, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  useCallback,
+  useState,
+} from 'react';
+
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+
 import { LogIn } from 'lucide-react';
+
 import GoogleSignInButton, {
   isGoogleSignInConfigured,
 } from './GoogleSignInButton.jsx';
+
 import PasswordInput from './PasswordInput.jsx';
 import SocialAuthButtons from './SocialAuthButtons.jsx';
+
 import { useAuth } from '../../context/AuthContext.jsx';
-import { getErrorMessage } from '../../services/authService.js';
+import {
+  getErrorMessage,
+} from '../../services/authService.js';
 
 const initialValues = {
   email: '',
@@ -20,12 +34,17 @@ function validate(values) {
 
   if (!values.email.trim()) {
     errors.email = 'Email is required.';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+  } else if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      values.email,
+    )
+  ) {
     errors.email = 'Invalid email format.';
   }
 
   if (!values.password) {
-    errors.password = 'Password is required.';
+    errors.password =
+      'Password is required.';
   }
 
   return errors;
@@ -34,28 +53,59 @@ function validate(values) {
 export default function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginWithGoogle } = useAuth();
 
-  const [values, setValues] = useState(initialValues);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
-  const [formError, setFormError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const {
+    login,
+    loginWithGoogle,
+  } = useAuth();
 
-  const visibleErrors = Object.fromEntries(
-    Object.entries(errors).filter(
-      ([key]) => touched[key] || submitting,
-    ),
-  );
+  const [values, setValues] =
+    useState(initialValues);
+
+  const [errors, setErrors] =
+    useState({});
+
+  const [touched, setTouched] =
+    useState({});
+
+  const [formError, setFormError] =
+    useState('');
+
+  const [success, setSuccess] =
+    useState('');
+
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
+
+  const [
+    googleSubmitting,
+    setGoogleSubmitting,
+  ] = useState(false);
+
+  const visibleErrors =
+    Object.fromEntries(
+      Object.entries(errors).filter(
+        ([key]) =>
+          touched[key] || submitting,
+      ),
+    );
 
   function updateValue(event) {
-    const { name, value, type, checked } = event.target;
+    const {
+      name,
+      value,
+      type,
+      checked,
+    } = event.target;
 
     const nextValues = {
       ...values,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]:
+        type === 'checkbox'
+          ? checked
+          : value,
     };
 
     setValues(nextValues);
@@ -72,17 +122,22 @@ export default function LoginForm() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const nextErrors = validate(values);
+    const nextErrors =
+      validate(values);
 
     setErrors(nextErrors);
+
     setTouched({
       email: true,
       password: true,
     });
+
     setFormError('');
     setSuccess('');
 
-    if (Object.keys(nextErrors).length > 0) {
+    if (
+      Object.keys(nextErrors).length > 0
+    ) {
       return;
     }
 
@@ -92,72 +147,91 @@ export default function LoginForm() {
       const data = await login({
         email: values.email.trim(),
         password: values.password,
-        rememberMe: values.rememberMe,
+        rememberMe:
+          values.rememberMe,
       });
 
-      setSuccess('Signed in successfully.');
+      setSuccess(
+        'Signed in successfully.',
+      );
 
       const redirectTo =
         data.user?.role === 'Admin'
-          ? '/admin/products'
-          : location.state?.from?.pathname || '/profile';
+          ? '/admin'
+          : location.state?.from
+              ?.pathname || '/profile';
 
       window.setTimeout(() => {
-        navigate(redirectTo, { replace: true });
+        navigate(redirectTo, {
+          replace: true,
+        });
       }, 350);
     } catch (error) {
       setFormError(
-        getErrorMessage(error, 'Invalid email or password.'),
+        getErrorMessage(
+          error,
+          'Invalid email or password.',
+        ),
       );
     } finally {
       setSubmitting(false);
     }
   }
 
-  const handleGoogleCredential = useCallback(
-    async (credential) => {
-      if (googleSubmitting) {
-        return;
-      }
+  const handleGoogleCredential =
+    useCallback(
+      async (credential) => {
+        if (googleSubmitting) {
+          return;
+        }
 
-      try {
-        setGoogleSubmitting(true);
-        setFormError('');
-        setSuccess('');
+        try {
+          setGoogleSubmitting(true);
+          setFormError('');
+          setSuccess('');
 
-        const data = await loginWithGoogle({
-          credential,
-          rememberMe: values.rememberMe,
-        });
+          const data =
+            await loginWithGoogle({
+              credential,
+              rememberMe:
+                values.rememberMe,
+            });
 
-        setSuccess('Signed in with Google.');
+          setSuccess(
+            'Signed in with Google.',
+          );
 
-        const redirectTo =
-          data.user?.role === 'Admin'
-            ? '/admin/products'
-            : location.state?.from?.pathname || '/profile';
-        window.setTimeout(() => {
-          navigate(redirectTo, { replace: true });
-        }, 350);
-      } catch (error) {
-        setFormError(
-          getErrorMessage(
-            error,
-            'Could not sign in with Google.',
-          ),
-        );
-      } finally {
-        setGoogleSubmitting(false);
-      }
-    },
-    [
-      googleSubmitting,
-      location.state?.from?.pathname,
-      loginWithGoogle,
-      navigate,
-      values.rememberMe,
-    ],
-  );
+          const redirectTo =
+            data.user?.role === 'Admin'
+              ? '/admin'
+              : location.state?.from
+                  ?.pathname ||
+                '/profile';
+
+          window.setTimeout(() => {
+            navigate(redirectTo, {
+              replace: true,
+            });
+          }, 350);
+        } catch (error) {
+          setFormError(
+            getErrorMessage(
+              error,
+              'Could not sign in with Google.',
+            ),
+          );
+        } finally {
+          setGoogleSubmitting(false);
+        }
+      },
+      [
+        googleSubmitting,
+        location.state?.from?.pathname,
+        loginWithGoogle,
+        navigate,
+        values.rememberMe,
+      ],
+    );
 
   return (
     <form
@@ -166,19 +240,27 @@ export default function LoginForm() {
       noValidate
     >
       {formError ? (
-        <div className="alert alert-error" role="alert">
+        <div
+          className="alert alert-error"
+          role="alert"
+        >
           {formError}
         </div>
       ) : null}
 
       {success ? (
-        <div className="alert alert-success" role="status">
+        <div
+          className="alert alert-success"
+          role="status"
+        >
           {success}
         </div>
       ) : null}
 
       <div className="field">
-        <label htmlFor="login-email">Email</label>
+        <label htmlFor="login-email">
+          Email
+        </label>
 
         <input
           id="login-email"
@@ -188,7 +270,9 @@ export default function LoginForm() {
           onChange={updateValue}
           onBlur={handleBlur}
           autoComplete="email"
-          aria-invalid={Boolean(visibleErrors.email)}
+          aria-invalid={Boolean(
+            visibleErrors.email,
+          )}
           aria-describedby={
             visibleErrors.email
               ? 'login-email-error'
@@ -213,7 +297,9 @@ export default function LoginForm() {
         value={values.password}
         onChange={updateValue}
         onBlur={handleBlur}
-        error={visibleErrors.password}
+        error={
+          visibleErrors.password
+        }
         autoComplete="current-password"
       />
 
@@ -222,7 +308,9 @@ export default function LoginForm() {
           <input
             type="checkbox"
             name="rememberMe"
-            checked={values.rememberMe}
+            checked={
+              values.rememberMe
+            }
             onChange={updateValue}
           />
 
@@ -237,16 +325,24 @@ export default function LoginForm() {
       <button
         className="primary-button"
         type="submit"
-        disabled={submitting || googleSubmitting}
+        disabled={
+          submitting ||
+          googleSubmitting
+        }
       >
         {submitting ? (
           <span className="spinner small" />
         ) : (
-          <LogIn size={18} aria-hidden="true" />
+          <LogIn
+            size={18}
+            aria-hidden="true"
+          />
         )}
 
         <span>
-          {submitting ? 'Signing in...' : 'Sign in'}
+          {submitting
+            ? 'Signing in...'
+            : 'Sign in'}
         </span>
       </button>
 
@@ -260,16 +356,21 @@ export default function LoginForm() {
           googleButton={
             isGoogleSignInConfigured ? (
               <GoogleSignInButton
-                onCredential={handleGoogleCredential}
+                onCredential={
+                  handleGoogleCredential
+                }
               />
             ) : null
           }
         />
       </div>
 
-      <p className="switch-link">
+      <p className="auth-switch">
         New here?{' '}
-        <Link to="/auth/signup">Create an account</Link>
+
+        <Link to="/auth/signup">
+          Create an account
+        </Link>
       </p>
     </form>
   );

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using VirtualTryOn.Api.DTOs.Auth;
@@ -38,7 +38,11 @@ public class AuthController(AuthService authService, IWebHostEnvironment environ
         LoginRequest request,
         CancellationToken cancellationToken)
     {
-        var response = await authService.LoginAsync(request, cancellationToken);
+        var response = await authService.LoginAsync(
+            request,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Request.Headers.UserAgent.ToString(),
+            cancellationToken);
         if (response is null)
         {
             return Unauthorized(ApiError.Create(
@@ -119,6 +123,25 @@ public class AuthController(AuthService authService, IWebHostEnvironment environ
         return Ok(new ApiMessage("Signed out successfully."));
     }
 
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponse>> Refresh(
+        RefreshSessionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await authService.RefreshSessionAsync(request.RefreshToken, cancellationToken);
+        if (response is null)
+        {
+            return Unauthorized(ApiError.Create(
+                "Your session has expired.",
+                "Please sign in again."));
+        }
+
+        return Ok(response);
+    }
+
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
@@ -188,4 +211,46 @@ public async Task<ActionResult<UserProfileResponse>>
 
     return Ok(profile);
 }
-}
+
+    [AllowAnonymous]
+    [HttpPost("verify-email")]
+    public async Task<ActionResult<ApiMessage>>
+        VerifyEmail(
+            VerifyEmailRequest request,
+            CancellationToken cancellationToken)
+    {
+        var verified =
+            await authService.VerifyEmailAsync(
+                request.Token,
+                cancellationToken);
+
+        if (!verified)
+        {
+            return BadRequest(
+                ApiError.Create(
+                    "Invalid or expired verification link.",
+                    "Request a new verification email."));
+        }
+
+        return Ok(
+            new ApiMessage(
+                "Your email was verified successfully."));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("resend-verification")]
+    public async Task<ActionResult<ApiMessage>>
+        ResendVerification(
+            ResendVerificationRequest request,
+            CancellationToken cancellationToken)
+    {
+        await authService.RequestVerificationAsync(
+            request.Email,
+            cancellationToken);
+
+        return Ok(
+            new ApiMessage(
+                "If this account requires verification, a new email was sent."));
+    }}
+
+

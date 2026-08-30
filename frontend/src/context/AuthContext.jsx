@@ -150,8 +150,25 @@ export function AuthProvider({ children }) {
           user,
         }));
       } catch {
-        if (isMounted) {
-          clearSession();
+        if (!session.refreshToken) {
+          if (isMounted) clearSession();
+          return;
+        }
+
+        try {
+          const refreshed = await authService.refresh(session.refreshToken);
+          if (!isMounted) return;
+
+          const rememberMe = session.storage === localStorage;
+          persistSession(refreshed, rememberMe);
+          setSession({
+            token: refreshed.token,
+            refreshToken: refreshed.refreshToken,
+            user: refreshed.user,
+            storage: rememberMe ? localStorage : sessionStorage,
+          });
+        } catch {
+          if (isMounted) clearSession();
         }
       } finally {
         if (isMounted) {

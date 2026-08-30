@@ -107,6 +107,39 @@ public class PromotionService(
         return await GetAsync(id, cancellationToken);
     }
 
+    public async Task<PromotionResponse?> ReactivateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var promotion = await dbContext.Promotions.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (promotion is null || promotion.EndsAt <= DateTimeOffset.UtcNow) return null;
+        promotion.IsActive = true;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await GetAsync(id, cancellationToken);
+    }
+
+    public async Task<PromotionResponse?> UpdateAsync(
+        Guid id, UpdatePromotionRequest request, CancellationToken cancellationToken)
+    {
+        var productIds = request.ProductIds.Distinct().ToList();
+        if (await dbContext.Products.CountAsync(item => productIds.Contains(item.Id), cancellationToken) != productIds.Count)
+            return null;
+        var promotion = await dbContext.Promotions.Include(item => item.Products)
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (promotion is null) return null;
+        promotion.Name = request.Name.Trim();
+        promotion.DiscountPercentage = request.DiscountPercentage;
+        promotion.StartsAt = request.StartsAt;
+        promotion.EndsAt = request.EndsAt;
+        var requestedIds = productIds.ToHashSet();
+        var obsoleteLinks = promotion.Products.Where(link => !requestedIds.Contains(link.ProductId)).ToList();
+        dbContext.PromotionProducts.RemoveRange(obsoleteLinks);
+        var retainedIds = promotion.Products.Where(link => requestedIds.Contains(link.ProductId))
+            .Select(link => link.ProductId).ToHashSet();
+        foreach (var productId in requestedIds.Except(retainedIds))
+            promotion.Products.Add(new PromotionProduct { PromotionId = id, ProductId = productId });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await GetAsync(id, cancellationToken);
+    }
+
     private async Task<PromotionResponse?> GetAsync(Guid id, CancellationToken cancellationToken)
     {
         var promotion = await dbContext.Promotions.AsNoTracking()

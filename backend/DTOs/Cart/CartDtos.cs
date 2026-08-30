@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace VirtualTryOn.Api.DTOs.Cart;
 
@@ -23,6 +23,7 @@ public sealed record CartItemResponse(
     Guid ProductId,
     Guid ProductSizeId,
     Guid? ProductColorId,
+    Guid? ProductVariantId,
     string ProductName,
     string ProductSlug,
     string CategoryName,
@@ -31,6 +32,7 @@ public sealed record CartItemResponse(
     string Size,
     string? ColorName,
     string? ColorHexCode,
+    string? Sku,
     decimal UnitPrice,
     int Quantity,
     int StockQuantity,

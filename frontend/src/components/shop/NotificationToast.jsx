@@ -5,13 +5,31 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { notificationService } from '../../services/notificationService.js';
 
 export default function NotificationToast() {
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [toast, setToast] = useState(null);
   const timeoutRef = useRef(null);
   const audioContextRef = useRef(null);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    let liveConnection = null;
+    notificationService.connect(token, (notification) => {
+      if (!active) return;
+      window.dispatchEvent(new CustomEvent('app-notification', { detail: notification }));
+      window.dispatchEvent(new CustomEvent('notifications-changed', { detail: notification }));
+    }).then((createdConnection) => {
+      if (!active) notificationService.disconnect(createdConnection);
+      else liveConnection = createdConnection;
+    }).catch(() => { /* Polling remains available if SignalR is temporarily unavailable. */ });
+    return () => { active = false; notificationService.disconnect(liveConnection); };
+  }, [token]);
 
   useEffect(() => {
     function unlockAudio() {

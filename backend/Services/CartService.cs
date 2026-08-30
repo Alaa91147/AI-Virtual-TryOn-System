@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using VirtualTryOn.Api.Data;
 using VirtualTryOn.Api.DTOs.Cart;
@@ -56,38 +56,30 @@ public class CartService(
             return new CartMutationResult(
                 CartMutationStatus.Unauthorized);
         }
-
-        var productSize = await dbContext.ProductSizes
-            .Include(size => size.Product)
-            .ThenInclude(product => product.Category)
+        var exactVariant = await dbContext.ProductVariants
+            .Include(variant => variant.Product)
+                .ThenInclude(product => product.Category)
+            .Include(variant => variant.ProductSize)
+            .Include(variant => variant.ProductColor)
             .SingleOrDefaultAsync(
-                size =>
-                    size.Id == request.ProductSizeId &&
-                    size.Product.IsActive &&
-                    size.Product.Category.IsActive,
+                variant =>
+                    variant.ProductSizeId ==
+                        request.ProductSizeId &&
+                    variant.ProductColorId ==
+                        request.ProductColorId &&
+                    variant.IsActive &&
+                    variant.Product.IsActive &&
+                    variant.Product.Category.IsActive,
                 cancellationToken);
 
-        if (productSize is null)
+        if (exactVariant is null)
         {
             return new CartMutationResult(
                 CartMutationStatus.NotFound);
         }
 
-        var productColor = await dbContext.ProductColors
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                color =>
-                    color.Id == request.ProductColorId &&
-                    color.ProductId == productSize.ProductId,
-                cancellationToken);
-
-        // The selected color must exist and belong
-        // to the same product as the selected size.
-        if (productColor is null)
-        {
-            return new CartMutationResult(
-                CartMutationStatus.NotFound);
-        }
+        var productSize = exactVariant.ProductSize;
+        var productColor = exactVariant.ProductColor;
 
         var cartItem = await dbContext.CartItems
             .SingleOrDefaultAsync(
@@ -103,7 +95,7 @@ public class CartService(
             (cartItem?.Quantity ?? 0) +
             request.Quantity;
 
-        if (newQuantity > productSize.StockQuantity)
+        if (newQuantity > exactVariant.StockQuantity)
         {
             return new CartMutationResult(
                 CartMutationStatus.OutOfStock);
@@ -185,13 +177,33 @@ return new CartMutationResult(
             return new CartMutationResult(
                 CartMutationStatus.NotFound);
         }
+        var exactVariant =
+            cartItem.ProductVariant ??
+            await dbContext.ProductVariants
+                .SingleOrDefaultAsync(
+                    variant =>
+                        variant.ProductSizeId ==
+                            cartItem.ProductSizeId &&
+                        variant.ProductColorId ==
+                            cartItem.ProductColorId &&
+                        variant.IsActive,
+                    cancellationToken);
+
+        if (exactVariant is null)
+        {
+            return new CartMutationResult(
+                CartMutationStatus.NotFound);
+        }
 
         if (request.Quantity >
-            cartItem.ProductSize.StockQuantity)
+            exactVariant.StockQuantity)
         {
             return new CartMutationResult(
                 CartMutationStatus.OutOfStock);
         }
+
+        cartItem.ProductVariantId =
+            exactVariant.Id;
 
         cartItem.Quantity = request.Quantity;
         cartItem.UpdatedAt = DateTimeOffset.UtcNow;
@@ -295,11 +307,15 @@ return new CartMutationResult(
                     item.ProductSize.Product.Id,
                     item.ProductSize.Id,
                     item.ProductColorId,
+                    item.ProductVariantId,
                     item.ProductSize.Product.Name,
                     item.ProductSize.Product.Slug,
                     item.ProductSize.Product.Category.Name,
                     item.ProductSize.Product.Category.Audience,
-                    item.ProductSize.Product.ImageUrl,
+                    item.ProductColor != null &&
+                    item.ProductColor.ImageUrl != null
+                        ? item.ProductColor.ImageUrl
+                        : item.ProductSize.Product.ImageUrl,
                     item.ProductSize.Name,
                     item.ProductColor != null
                         ? item.ProductColor.Name
@@ -307,30 +323,54 @@ return new CartMutationResult(
                     item.ProductColor != null
                         ? item.ProductColor.HexCode
                         : null,
+                    item.ProductVariant != null
+                        ? item.ProductVariant.Sku
+                        : null,
                     item.ProductSize.Product.Promotions.Any(link =>
                         link.Promotion.IsActive &&
-                        link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
-                        link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
-                        ? item.ProductSize.Product.Price * (1m -
-                            item.ProductSize.Product.Promotions
-                                .Where(link => link.Promotion.IsActive &&
-                                    link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
-                                    link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
-                                .Max(link => link.Promotion.DiscountPercentage) / 100m)
+                        link.Promotion.StartsAt <=
+                            DateTimeOffset.UtcNow &&
+                        link.Promotion.EndsAt >=
+                            DateTimeOffset.UtcNow)
+                        ? item.ProductSize.Product.Price *
+                            (1m -
+                                item.ProductSize.Product.Promotions
+                                    .Where(link =>
+                                        link.Promotion.IsActive &&
+                                        link.Promotion.StartsAt <=
+                                            DateTimeOffset.UtcNow &&
+                                        link.Promotion.EndsAt >=
+                                            DateTimeOffset.UtcNow)
+                                    .Max(link =>
+                                        link.Promotion
+                                            .DiscountPercentage) /
+                                100m)
                         : item.ProductSize.Product.Price,
                     item.Quantity,
-                    item.ProductSize.StockQuantity,
+                    item.ProductVariant != null
+                        ? item.ProductVariant.StockQuantity
+                        : item.ProductSize.StockQuantity,
                     (item.ProductSize.Product.Promotions.Any(link =>
                         link.Promotion.IsActive &&
-                        link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
-                        link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
-                        ? item.ProductSize.Product.Price * (1m -
-                            item.ProductSize.Product.Promotions
-                                .Where(link => link.Promotion.IsActive &&
-                                    link.Promotion.StartsAt <= DateTimeOffset.UtcNow &&
-                                    link.Promotion.EndsAt >= DateTimeOffset.UtcNow)
-                                .Max(link => link.Promotion.DiscountPercentage) / 100m)
-                        : item.ProductSize.Product.Price) * item.Quantity))
+                        link.Promotion.StartsAt <=
+                            DateTimeOffset.UtcNow &&
+                        link.Promotion.EndsAt >=
+                            DateTimeOffset.UtcNow)
+                        ? item.ProductSize.Product.Price *
+                            (1m -
+                                item.ProductSize.Product.Promotions
+                                    .Where(link =>
+                                        link.Promotion.IsActive &&
+                                        link.Promotion.StartsAt <=
+                                            DateTimeOffset.UtcNow &&
+                                        link.Promotion.EndsAt >=
+                                            DateTimeOffset.UtcNow)
+                                    .Max(link =>
+                                        link.Promotion
+                                            .DiscountPercentage) /
+                                100m)
+                        : item.ProductSize.Product.Price) *
+                            item.Quantity))
             .ToListAsync(cancellationToken);
 
         return new CartResponse(
@@ -359,3 +399,5 @@ return new CartMutationResult(
             : null;
     }
 }
+
+

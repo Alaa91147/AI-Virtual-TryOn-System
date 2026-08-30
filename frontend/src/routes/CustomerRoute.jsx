@@ -28,7 +28,7 @@ export default function CustomerRoute({ children }) {
   }
 
   if (user?.role === 'Admin') {
-    return <Navigate to="/admin/products" replace />;
+    return <Navigate to="/admin" replace />;
   }
 
   return children;

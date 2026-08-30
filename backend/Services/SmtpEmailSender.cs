@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -109,6 +109,153 @@ public sealed class SmtpEmailSender(
         logger.LogWarning("Password reset email sent to {Email}.", email);
     }
 
+    public async Task SendEmailVerificationAsync(
+        string email,
+        string customerName,
+        string verificationLink,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(
+                _emailOptions.SmtpHost) ||
+            string.IsNullOrWhiteSpace(
+                _emailOptions.From))
+        {
+            logger.LogWarning(
+                "SMTP is not configured. Verification link for {Email}: {Link}",
+                email,
+                verificationLink);
+
+            return;
+        }
+
+        var safeName =
+            WebUtility.HtmlEncode(customerName);
+
+        var safeLink =
+            WebUtility.HtmlEncode(verificationLink);
+
+        var htmlBody = $$"""
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport"
+                content="width=device-width,initial-scale=1">
+          <title>Verify your email</title>
+        </head>
+
+        <body style="margin:0;background:#f4f1ec;font-family:Arial,Helvetica,sans-serif;color:#191715;">
+          <table role="presentation"
+                 width="100%"
+                 cellspacing="0"
+                 cellpadding="0"
+                 style="background:#f4f1ec;padding:34px 16px;">
+            <tr>
+              <td align="center">
+                <table role="presentation"
+                       width="100%"
+                       cellspacing="0"
+                       cellpadding="0"
+                       style="max-width:600px;background:#ffffff;border:1px solid #ded8ce;border-radius:12px;overflow:hidden;">
+                  <tr>
+                    <td style="height:6px;background:#9a7b4f;"></td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:36px;">
+                      <p style="margin:0 0 18px;font-size:19px;font-weight:800;">
+                        AI Virtual Try-On
+                      </p>
+
+                      <p style="margin:0 0 10px;color:#9a7b4f;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">
+                        Account verification
+                      </p>
+
+                      <h1 style="margin:0 0 16px;font-size:30px;line-height:1.2;">
+                        Verify your email
+                      </h1>
+
+                      <p style="margin:0 0 12px;color:#68625a;font-size:16px;line-height:1.6;">
+                        Hello {{safeName}},
+                      </p>
+
+                      <p style="margin:0 0 26px;color:#68625a;font-size:16px;line-height:1.6;">
+                        Confirm your email address to activate verified-account features and receive promotion emails.
+                      </p>
+
+                      <p style="margin:0 0 28px;">
+                        <a href="{{safeLink}}"
+                           style="display:inline-block;background:#191715;color:#ffffff;text-decoration:none;font-size:16px;font-weight:800;padding:15px 28px;border-radius:8px;">
+                          Verify email
+                        </a>
+                      </p>
+
+                      <p style="margin:0;color:#7a7369;font-size:13px;line-height:1.55;">
+                        This link expires in 24 hours. If you did not create this account, ignore this email.
+                      </p>
+
+                      <p style="margin:10px 0 0;color:#7a7369;font-size:12px;line-height:1.55;word-break:break-all;">
+                        {{safeLink}}
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:18px 36px 30px;color:#9a948b;font-size:12px;border-top:1px solid #eee8df;">
+                      AI Virtual Try-On account security
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """;
+
+        using var message = new MailMessage
+        {
+            From = new MailAddress(
+                _emailOptions.From,
+                _emailOptions.FromName),
+            Subject =
+                "Verify your AI Virtual Try-On email",
+            Body = htmlBody,
+            BodyEncoding = Encoding.UTF8,
+            SubjectEncoding = Encoding.UTF8,
+            IsBodyHtml = true,
+            Priority = MailPriority.Normal
+        };
+
+        message.To.Add(email);
+        message.Headers.Add(
+            "X-Auto-Response-Suppress",
+            "All");
+
+        using var smtpClient = new SmtpClient(
+            _emailOptions.SmtpHost,
+            _emailOptions.SmtpPort)
+        {
+            EnableSsl = _emailOptions.EnableSsl
+        };
+
+        if (!string.IsNullOrWhiteSpace(
+                _emailOptions.SmtpUsername))
+        {
+            smtpClient.Credentials =
+                new NetworkCredential(
+                    _emailOptions.SmtpUsername,
+                    _emailOptions.SmtpPassword);
+        }
+
+        await smtpClient.SendMailAsync(
+            message,
+            cancellationToken);
+
+        logger.LogInformation(
+            "Verification email sent to {Email}.",
+            email);
+    }
     public async Task SendPromotionEmailAsync(
         string email,
         string customerName,
@@ -144,7 +291,7 @@ public sealed class SmtpEmailSender(
         using var message = new MailMessage
         {
             From = new MailAddress(_emailOptions.From, _emailOptions.FromName),
-            Subject = $"Up to {discount}% off — selected for you",
+            Subject = $"Up to {discount}% off â€” selected for you",
             Body = body,
             BodyEncoding = Encoding.UTF8,
             SubjectEncoding = Encoding.UTF8,
@@ -162,3 +309,4 @@ public sealed class SmtpEmailSender(
         await client.SendMailAsync(message, cancellationToken);
     }
 }
+

@@ -9,6 +9,7 @@ using VirtualTryOn.Api.Data;
 using VirtualTryOn.Api.Models;
 using VirtualTryOn.Api.Responses;
 using VirtualTryOn.Api.Services;
+using VirtualTryOn.Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,7 +38,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -81,6 +83,9 @@ builder.Services.AddScoped<AdminProductService>();
 builder.Services.AddScoped<PromotionService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<AdminCustomerService>();
+builder.Services.AddScoped<AdminCategoryService>();
+builder.Services.AddScoped<AdminAuditService>();
+builder.Services.AddSignalR();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 var jwtSecret = Encoding.UTF8.GetBytes(jwtOptions.Secret);
@@ -99,6 +104,21 @@ builder.Services
             ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(jwtSecret),
             ClockSkew = TimeSpan.FromMinutes(1)
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrWhiteSpace(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -144,13 +164,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors(policy =>
-{
-    policy
-        .AllowAnyOrigin()
-        .AllowAnyHeader()
-        .AllowAnyMethod();
-});
+app.UseCors("Frontend");
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
@@ -170,6 +184,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationsHub>("/hubs/notifications");
 
 app.Run();
 

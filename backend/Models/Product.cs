@@ -1,4 +1,4 @@
-namespace VirtualTryOn.Api.Models;
+﻿namespace VirtualTryOn.Api.Models;
 
 public class Product
 {
@@ -25,9 +25,11 @@ public class Product
     public Category Category { get; set; } = null!;
     public ICollection<ProductColor> Colors { get; set; } = [];
     public ICollection<ProductSize> Sizes { get; set; } = [];
+    public ICollection<ProductVariant> Variants { get; set; } = [];
     public ICollection<Favorite> Favorites { get; set; } = [];
     public ICollection<RecentlyViewedProduct> RecentlyViewedByUsers { get; set; } = [];
     public ICollection<ProductReview> Reviews { get; set; } = [];
     public ICollection<PromotionProduct> Promotions { get; set; } = [];
     public ICollection<OrderItem> OrderItems { get; set; } = [];
 }
+
