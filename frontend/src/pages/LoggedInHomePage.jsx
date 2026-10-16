@@ -204,12 +204,12 @@ function ProductCard({
         </div>
 
         <button
-          className="shop-try-button"
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="AI Virtual Try-On is coming next"
-        >
+  className="shop-try-button"
+  type="button"
+  onClick={() => {
+    window.location.href = `/shop/products/${product.id}`;
+  }}
+>
           <Sparkles size={15} />
           Try On
         </button>
@@ -944,12 +944,15 @@ useEffect(() => {
           ))}
 
           <button
-            className="shop-nav-ai"
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="AI Virtual Try-On is coming next"
-          >
+  className="shop-nav-ai"
+  type="button"
+  onClick={() => {
+    document.querySelector('.shop-product-card')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }}
+>
             <Sparkles size={14} />
             Virtual Try-On
           </button>
@@ -1005,12 +1008,15 @@ useEffect(() => {
               </button>
 
               <button
-                className="shop-secondary-action"
-                type="button"
-                disabled
-                aria-disabled="true"
-                title="AI Virtual Try-On is coming next"
-              >
+  className="shop-secondary-action"
+  type="button"
+  onClick={() => {
+    document.querySelector('.shop-product-card')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }}
+>
                 <Sparkles size={16} />
                 Start Virtual Try-On
               </button>

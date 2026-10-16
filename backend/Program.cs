@@ -30,6 +30,22 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(ApiError.Create("Validation failed.", errors));
         };
     });
+
+builder.Services.AddHttpClient("TryOnAi", client =>
+{
+    var baseUrl = builder.Configuration["TryOnAi:BaseUrl"]
+        ?? "http://127.0.0.1:8000/";
+
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromMinutes(4);
+
+    var apiKey = builder.Configuration["TryOnAi:ApiKey"];
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-API-Key", apiKey.Trim());
+    }
+});
+
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
@@ -50,20 +66,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ?? throw new InvalidOperationException(
             "ConnectionStrings:DefaultConnection is not configured.");
 
-
-
-    options.UseSqlServer(
-        connectionString,
-        sqlServerOptions =>
-        {
-            sqlServerOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(5),
-                errorNumbersToAdd: null);
-
-            sqlServerOptions.CommandTimeout(60);
-        });
+    options.UseSqlServer(connectionString, sqlServerOptions =>
+    {
+        sqlServerOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorNumbersToAdd: null);
+        sqlServerOptions.CommandTimeout(60);
+    });
 });
+
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection(GoogleAuthOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
@@ -87,11 +99,10 @@ builder.Services.AddScoped<AdminCategoryService>();
 builder.Services.AddScoped<AdminAuditService>();
 builder.Services.AddSignalR();
 
-var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName)
+    .Get<JwtOptions>() ?? new JwtOptions();
 var jwtSecret = Encoding.UTF8.GetBytes(jwtOptions.Secret);
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -125,15 +136,13 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext =
-        scope.ServiceProvider
-            .GetRequiredService<AppDbContext>();
-
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await CatalogSeeder.SeedAsync(dbContext);
-  //  await ProductSeeder.SeedAsync(dbContext);
 }
+
 app.Use(async (context, next) =>
 {
     try
@@ -171,18 +180,16 @@ app.UseStaticFiles(new StaticFileOptions
     {
         var origin = context.Context.Request.Headers.Origin.ToString();
 
-        if (allowedOrigins.Contains(
-                origin,
-                StringComparer.OrdinalIgnoreCase))
+        if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
         {
             context.Context.Response.Headers.AccessControlAllowOrigin = origin;
             context.Context.Response.Headers.Vary = "Origin";
         }
     }
 });
+
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 app.MapHub<NotificationsHub>("/hubs/notifications");
 
@@ -206,23 +213,10 @@ static bool IsDatabaseUnavailable(Exception exception)
         }
     }
 
-    return exception.InnerException is not null && IsDatabaseUnavailable(exception.InnerException);
+    return exception.InnerException is not null
+        && IsDatabaseUnavailable(exception.InnerException);
 }
 
-static bool IsTransientSqlError(int errorNumber)
-{
-    return errorNumber is
-        -2 or
-        53 or
-        64 or
-        233 or
-        4060 or
-        10053 or
-        10054 or
-        10060 or
-        10928 or
-        10929 or
-        40197 or
-        40501 or
-        40613;
-}
+static bool IsTransientSqlError(int errorNumber) => errorNumber is
+    -2 or 53 or 64 or 233 or 4060 or 10053 or 10054 or 10060 or
+    10928 or 10929 or 40197 or 40501 or 40613;

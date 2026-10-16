@@ -1454,6 +1454,43 @@ def is_landmark_visible(
         and 0.0 <= y <= 1.0
     )
 
+@app.post("/try-on")
+def try_on(
+    person: UploadFile = File(...),
+    garment: UploadFile = File(...),
+) -> Response:
+    person_image = read_pil_image(
+        read_uploaded_image(person)
+    )
+
+    garment_image = read_pil_image(
+        read_uploaded_image(garment)
+    )
+
+    if person_image.width < 256 or person_image.height < 384:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Use a clearer full body photo "
+                "(at least 256 × 384 pixels)."
+            ),
+        )
+
+    if garment_image.width < 128 or garment_image.height < 128:
+        raise HTTPException(
+            status_code=422,
+            detail="The product image is too small for try-on.",
+        )
+
+    # Replace this response with CatVTON inference after its
+    # separate environment and checkpoints work locally.
+    raise HTTPException(
+        status_code=503,
+        detail=(
+            "CatVTON is not installed yet. The images reached "
+            "the AI service, but generation is unavailable."
+        ),
+    )
 
 def accepted(
     slot: str,

@@ -153,6 +153,7 @@ public class ProductService(
                 product.Colors)
             .Include(product =>
                 product.Sizes)
+            .Include(product => product.Variants)
             .Include(product =>
                 product.Favorites)
             .Include(product => product.Promotions)
@@ -212,7 +213,17 @@ product.Colors
                         size.Id,
                         size.Name,
                         size.StockQuantity))
-                .ToList());
+                .ToList())
+        {
+            Variants = product.Variants
+                .Where(variant => variant.IsActive)
+                .Select(variant => new ShopProductVariantResponse(
+                    variant.Id,
+                    variant.ProductSizeId,
+                    variant.ProductColorId,
+                    variant.StockQuantity))
+                .ToList()
+        };
     }
 
     private static Guid?

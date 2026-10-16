@@ -33,7 +33,17 @@ public sealed record ShopProductResponse(
     bool IsFavorite,
     bool IsNew,
     IReadOnlyList<ShopProductColorResponse> Colors,
-    IReadOnlyList<ShopProductSizeResponse> Sizes);
+    IReadOnlyList<ShopProductSizeResponse> Sizes)
+{
+    public IReadOnlyList<ShopProductVariantResponse> Variants { get; init; }
+        = Array.Empty<ShopProductVariantResponse>();
+}
+
+public sealed record ShopProductVariantResponse(
+    Guid Id,
+    Guid ProductSizeId,
+    Guid ProductColorId,
+    int StockQuantity);
 
 public sealed record ShopProductColorResponse(
     Guid Id,
